@@ -133,6 +133,21 @@ async def run_async_fallback(
             kwargs.setdefault("metadata", {}).update(
                 {"model_group": kwargs.get("model", None)}
             )  # update model_group used, if fallbacks are done
+            if isinstance(kwargs.get("model"), str):
+                fallback_deployments = litellm_router.get_model_list(
+                    model_name=kwargs["model"]
+                )
+                if fallback_deployments:
+                    from litellm.router_strategy.tag_based_routing import (
+                        filter_deployments_for_tag,
+                    )
+
+                    filter_deployments_for_tag(
+                        llm_router_instance=litellm_router,
+                        model=kwargs["model"],
+                        healthy_deployments=fallback_deployments,
+                        request_kwargs=kwargs,
+                    )
             fallback_depth = fallback_depth + 1
             kwargs["fallback_depth"] = fallback_depth
             kwargs["max_fallbacks"] = max_fallbacks
