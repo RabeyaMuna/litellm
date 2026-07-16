@@ -51,6 +51,8 @@ def get_supports_response_schema(
 ) -> bool:
     if litellm.VertexGeminiConfig._is_model_gemini_spec_model(model):
         return True
+    if custom_llm_provider == "gemini" and model.startswith("gemini"):
+        return True
 
     _custom_llm_provider = custom_llm_provider
     if custom_llm_provider == "vertex_ai_beta":
