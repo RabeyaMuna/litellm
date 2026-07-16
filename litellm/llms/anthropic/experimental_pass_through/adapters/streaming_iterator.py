@@ -383,7 +383,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
 
         if block_type != self.current_content_block_type:
             self.current_content_block_type = block_type
-            self.current_content_block_start = content_block_start
+            self.current_content_block_start = content_block_start["content_block"]
             return True
 
         return False
