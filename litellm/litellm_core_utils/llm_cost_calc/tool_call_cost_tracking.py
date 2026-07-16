@@ -89,7 +89,10 @@ class StandardBuiltInToolCostTracking:
             model_info = StandardBuiltInToolCostTracking._safe_get_model_info(
                 model=model, custom_llm_provider=custom_llm_provider
             )
-            if custom_llm_provider == "anthropic":
+            if custom_llm_provider == "anthropic" or (
+                model_info is not None
+                and model_info.get("litellm_provider") == "anthropic"
+            ):
                 return (
                     StandardBuiltInToolCostTracking.get_cost_for_anthropic_web_search(
                         model_info=model_info,
