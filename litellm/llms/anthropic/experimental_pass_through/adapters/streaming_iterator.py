@@ -31,6 +31,20 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
     def __init__(self, completion_stream: Any, model: str):
         super().__init__(completion_stream)
         self.model = model
+        self.sent_first_chunk = False
+        self.sent_content_block_start = False
+        self.sent_content_block_finish = False
+        self.current_content_block_type = "text"
+        self.sent_last_message = False
+        self.holding_chunk = None
+        self.holding_stop_reason_chunk = None
+        self.current_content_block_index = 0
+        self.current_content_block_start = self.TextBlock(
+            type="text",
+            text="",
+        )
+        self.pending_new_content_block = False
+        self.chunk_queue = deque()
 
     sent_first_chunk: bool = False
     sent_content_block_start: bool = False
@@ -40,6 +54,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
     holding_chunk: Optional[Any] = None
     holding_stop_reason_chunk: Optional[Any] = None
     current_content_block_index: int = 0
+    pending_new_content_block: bool = False
     current_content_block_start: ContentBlockContentBlockDict = TextBlock(
         type="text",
         text="",
