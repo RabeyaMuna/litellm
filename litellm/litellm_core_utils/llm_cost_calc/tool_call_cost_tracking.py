@@ -89,7 +89,11 @@ class StandardBuiltInToolCostTracking:
                 model=model, custom_llm_provider=custom_llm_provider
             )
             model_provider = (model_info or {}).get("litellm_provider")
-            if custom_llm_provider == "anthropic" or model_provider == "anthropic":
+            if (
+                custom_llm_provider == "anthropic"
+                or model_provider == "anthropic"
+                or StandardBuiltInToolCostTracking._is_anthropic_model(model)
+            ):
                 return (
                     StandardBuiltInToolCostTracking.get_cost_for_anthropic_web_search(
                         model_info=model_info,
@@ -145,6 +149,11 @@ class StandardBuiltInToolCostTracking:
         ):
             return True
         return False
+
+    @staticmethod
+    def _is_anthropic_model(model: str) -> bool:
+        model = model.split("/", 1)[1] if model.startswith("anthropic/") else model
+        return model.startswith("claude-")
 
     @staticmethod
     def response_object_includes_file_search_call(
