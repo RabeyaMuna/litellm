@@ -43,7 +43,7 @@ def is_valid_deployment_tag(
     return False
 
 
-async def get_deployments_for_tag(
+def filter_deployments_for_tag(
     llm_router_instance: LitellmRouter,
     model: str,  # used to raise the correct error
     healthy_deployments: Union[List[Any], Dict[Any, Any]],
@@ -120,6 +120,23 @@ async def get_deployments_for_tag(
         healthy_deployments,
     )
     return healthy_deployments
+
+
+async def get_deployments_for_tag(
+    llm_router_instance: LitellmRouter,
+    model: str,  # used to raise the correct error
+    healthy_deployments: Union[List[Any], Dict[Any, Any]],
+    request_kwargs: Optional[Dict[Any, Any]] = None,
+):
+    """
+    Async wrapper for tag-based deployment filtering.
+    """
+    return filter_deployments_for_tag(
+        llm_router_instance=llm_router_instance,
+        model=model,
+        healthy_deployments=healthy_deployments,
+        request_kwargs=request_kwargs,
+    )
 
 
 def _get_tags_from_request_kwargs(
