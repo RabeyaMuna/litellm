@@ -159,6 +159,7 @@ ANTHROPIC_WEB_SEARCH_TOOL_MAX_USES = {
     "medium": 5,
     "high": 10,
 }
+ANTHROPIC_WEB_SEARCH_COST_PER_QUERY = 0.01
 
 LITELLM_CHAT_PROVIDERS = [
     "openai",
@@ -229,7 +230,7 @@ LITELLM_CHAT_PROVIDERS = [
 LITELLM_EMBEDDING_PROVIDERS_SUPPORTING_INPUT_ARRAY_OF_TOKENS = [
     "openai",
     "azure",
-    "hosted_vllm"
+    "hosted_vllm",
 ]
 
 
