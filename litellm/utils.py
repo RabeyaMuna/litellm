@@ -134,6 +134,7 @@ from litellm.llms.base_llm.google_genai.transformation import (
 )
 from litellm.llms.bedrock.common_utils import BedrockModelInfo
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
+from litellm.llms.together_ai.cost_calculator import get_model_params_and_category
 from litellm.router_utils.get_retry_from_policy import (
     get_num_retries_from_retry_policy,
     reset_retry_policy,
@@ -4681,6 +4682,18 @@ def _get_model_info_helper(  # noqa: PLR0915
                 "input_cost_per_token"
             )
             if _input_cost_per_token is None:
+                if custom_llm_provider == "together_ai":
+                    together_ai_model_category = get_model_params_and_category(
+                        model_name=model,
+                        call_type=CallTypes.completion,
+                    )
+                    together_ai_category_info = litellm.model_cost.get(
+                        together_ai_model_category, {}
+                    )
+                    _input_cost_per_token = together_ai_category_info.get(
+                        "input_cost_per_token"
+                    )
+            if _input_cost_per_token is None:
                 # default value to 0, be noisy about this
                 verbose_logger.debug(
                     "model={}, custom_llm_provider={} has no input_cost_per_token in model_cost_map. Defaulting to 0.".format(
@@ -4692,6 +4705,18 @@ def _get_model_info_helper(  # noqa: PLR0915
             _output_cost_per_token: Optional[float] = _model_info.get(
                 "output_cost_per_token"
             )
+            if _output_cost_per_token is None:
+                if custom_llm_provider == "together_ai":
+                    together_ai_model_category = get_model_params_and_category(
+                        model_name=model,
+                        call_type=CallTypes.completion,
+                    )
+                    together_ai_category_info = litellm.model_cost.get(
+                        together_ai_model_category, {}
+                    )
+                    _output_cost_per_token = together_ai_category_info.get(
+                        "output_cost_per_token"
+                    )
             if _output_cost_per_token is None:
                 # default value to 0, be noisy about this
                 verbose_logger.debug(
