@@ -6712,6 +6712,8 @@ class ProviderConfigManager:
             return litellm.EmpowerChatConfig()
         elif litellm.LlmProviders.GITHUB == provider:
             return litellm.GithubChatConfig()
+        elif litellm.LlmProviders.GITHUB_COPILOT == provider:
+            return litellm.GithubCopilotConfig()
         elif (
             litellm.LlmProviders.CUSTOM == provider
             or litellm.LlmProviders.CUSTOM_OPENAI == provider
@@ -6844,8 +6846,6 @@ class ProviderConfigManager:
             return litellm.LiteLLMProxyChatConfig()
         elif litellm.LlmProviders.OPENAI == provider:
             return litellm.OpenAIGPTConfig()
-        elif litellm.LlmProviders.DIGITALOCEAN == provider:
-            return litellm.DigitalOceanConfig()
         elif litellm.LlmProviders.NSCALE == provider:
             return litellm.NscaleConfig()
         return None
