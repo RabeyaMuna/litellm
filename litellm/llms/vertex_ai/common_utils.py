@@ -52,6 +52,8 @@ def get_supports_response_schema(
     _custom_llm_provider = custom_llm_provider
     if custom_llm_provider == "vertex_ai_beta":
         _custom_llm_provider = "vertex_ai"
+    if _custom_llm_provider == "vertex_ai" and model.startswith("gemini/"):
+        model = model.split("/", 1)[1]
 
     _supports_response_schema = supports_response_schema(
         model=model, custom_llm_provider=_custom_llm_provider
