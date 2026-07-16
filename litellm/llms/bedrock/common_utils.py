@@ -390,6 +390,9 @@ class BedrockModelInfo(BaseLLMModelInfo):
         if model.startswith("bedrock/"):
             model = model.split("/", 1)[1]
 
+        if model.startswith("bedrock_converse/"):
+            model = model.split("/", 1)[1]
+
         if model.startswith("converse/"):
             model = model.split("/", 1)[1]
 
