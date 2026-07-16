@@ -49,6 +49,9 @@ def get_supports_system_message(
 def get_supports_response_schema(
     model: str, custom_llm_provider: Literal["vertex_ai", "vertex_ai_beta", "gemini"]
 ) -> bool:
+    if litellm.VertexGeminiConfig._is_model_gemini_spec_model(model):
+        return True
+
     _custom_llm_provider = custom_llm_provider
     if custom_llm_provider == "vertex_ai_beta":
         _custom_llm_provider = "vertex_ai"
