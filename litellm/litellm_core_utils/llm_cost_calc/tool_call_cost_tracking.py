@@ -5,7 +5,10 @@ Helper utilities for tracking the cost of built-in tools.
 from typing import Any, Dict, List, Literal, Optional
 
 import litellm
-from litellm.constants import OPENAI_FILE_SEARCH_COST_PER_1K_CALLS
+from litellm.constants import (
+    ANTHROPIC_WEB_SEARCH_COST_PER_QUERY,
+    OPENAI_FILE_SEARCH_COST_PER_1K_CALLS,
+)
 from litellm.types.llms.openai import (
     FileSearchTool,
     ResponsesAPIResponse,
@@ -36,10 +39,6 @@ class StandardBuiltInToolCostTracking:
         """
         Get the cost of using a web search tool for Anthropic.
         """
-        ## Check if web search requests are in the usage object
-        if model_info is None:
-            return 0.0
-
         if (
             usage is None
             or usage.server_tool_use is None
@@ -49,13 +48,13 @@ class StandardBuiltInToolCostTracking:
 
         ## Get the cost per web search request
         search_context_pricing: SearchContextCostPerQuery = (
-            model_info.get("search_context_cost_per_query", {}) or {}
+            (model_info or {}).get("search_context_cost_per_query", {}) or {}
         )
         cost_per_web_search_request = search_context_pricing.get(
-            "search_context_size_medium", 0.0
+            "search_context_size_medium", ANTHROPIC_WEB_SEARCH_COST_PER_QUERY
         )
         if cost_per_web_search_request is None or cost_per_web_search_request == 0.0:
-            return 0.0
+            cost_per_web_search_request = ANTHROPIC_WEB_SEARCH_COST_PER_QUERY
 
         ## Calculate the total cost
         total_cost = (
@@ -89,7 +88,8 @@ class StandardBuiltInToolCostTracking:
             model_info = StandardBuiltInToolCostTracking._safe_get_model_info(
                 model=model, custom_llm_provider=custom_llm_provider
             )
-            if custom_llm_provider == "anthropic":
+            model_provider = (model_info or {}).get("litellm_provider")
+            if custom_llm_provider == "anthropic" or model_provider == "anthropic":
                 return (
                     StandardBuiltInToolCostTracking.get_cost_for_anthropic_web_search(
                         model_info=model_info,

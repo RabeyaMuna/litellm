@@ -159,6 +159,9 @@ MAX_LANGFUSE_INITIALIZED_CLIENTS = int(
 
 ############### LLM Provider Constants ###############
 ### ANTHROPIC CONSTANTS ###
+ANTHROPIC_WEB_SEARCH_COST_PER_QUERY = float(
+    os.getenv("ANTHROPIC_WEB_SEARCH_COST_PER_QUERY", 0.01)
+)
 ANTHROPIC_WEB_SEARCH_TOOL_MAX_USES = {
     "low": 1,
     "medium": 5,
