@@ -12,13 +12,64 @@ sys.path.insert(
 )  # Adds the parent directory to the system path
 
 import litellm
+import litellm.llms.vertex_ai.common_utils as vertex_common_utils
 from litellm.llms.vertex_ai.common_utils import (
     _get_vertex_url,
     convert_anyof_null_to_nullable,
+    get_supports_response_schema,
     get_vertex_location_from_url,
     get_vertex_project_id_from_url,
     set_schema_property_ordering,
 )
+
+
+def test_gemini_response_schema_support_checks_prefixed_model_cost(monkeypatch):
+    """Google AI Studio Gemini models should keep native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/test-schema-model",
+        {"supports_response_schema": True},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="test-schema-model", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
+def test_gemini_response_schema_support_respects_explicit_false(monkeypatch):
+    """An exact model-level false should not be overridden by prefixed metadata."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "test-schema-model",
+        {"supports_response_schema": False},
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/test-schema-model",
+        {"supports_response_schema": True},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="test-schema-model", custom_llm_provider="gemini"
+        )
+        is False
+    )
 
 
 @pytest.mark.asyncio
