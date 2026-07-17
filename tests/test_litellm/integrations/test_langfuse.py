@@ -13,6 +13,7 @@ from unittest.mock import patch
 import pytest
 
 import litellm
+from litellm.integrations.langfuse import langfuse as langfuse_module
 from litellm.integrations.langfuse.langfuse import LangFuseLogger
 
 
@@ -38,9 +39,7 @@ def test_max_langfuse_clients_limit(monkeypatch):
     monkeypatch.setitem(sys.modules, "langfuse", mock_langfuse_module)
 
     # Set max clients to 2 for testing
-    with patch(
-        "litellm.integrations.langfuse.langfuse.MAX_LANGFUSE_INITIALIZED_CLIENTS", 2
-    ):
+    with patch.object(langfuse_module, "MAX_LANGFUSE_INITIALIZED_CLIENTS", 2):
         # Reset the counter
         monkeypatch.setattr(litellm, "initialized_langfuse_clients", 0)
 
