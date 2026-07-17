@@ -76,6 +76,12 @@ def get_supports_response_schema(
     _supports_response_schema = supports_response_schema(
         model=model, custom_llm_provider=_custom_llm_provider
     )
+    if (
+        _supports_response_schema is False
+        and custom_llm_provider in ("gemini", "vertex_ai")
+        and litellm.VertexGeminiConfig._is_model_gemini_spec_model(model)
+    ):
+        return True
 
     return _supports_response_schema
 

@@ -72,6 +72,59 @@ def test_gemini_response_schema_support_respects_explicit_false(monkeypatch):
     )
 
 
+def test_gemini_response_schema_support_defaults_true_for_gemini_spec_model(
+    monkeypatch,
+):
+    """Gemini request-format models should keep native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.delitem(
+        litellm.model_cost,
+        "gemini/gemini-1.5-pro",
+        raising=False,
+    )
+    monkeypatch.delitem(
+        litellm.model_cost,
+        "gemini-1.5-pro",
+        raising=False,
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="gemini/gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
+def test_gemini_response_schema_support_default_does_not_override_exact_false(
+    monkeypatch,
+):
+    """Exact model metadata should still disable native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: True,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/gemini-1.5-pro",
+        {"supports_response_schema": False},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="gemini/gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is False
+    )
+
+
 @pytest.mark.asyncio
 async def test_get_vertex_project_id_from_url():
     """Test _get_vertex_project_id_from_url with various URLs"""
