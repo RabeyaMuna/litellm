@@ -53,28 +53,29 @@ def get_supports_response_schema(
     if custom_llm_provider == "vertex_ai_beta":
         _custom_llm_provider = "vertex_ai"
 
+    exact_model_info = litellm.model_cost.get(model)
+    if (
+        exact_model_info is not None
+        and exact_model_info.get("supports_response_schema") is False
+    ):
+        return False
+    if (
+        exact_model_info is not None
+        and exact_model_info.get("supports_response_schema") is True
+    ):
+        return True
+
+    if custom_llm_provider == "gemini" and not model.startswith("gemini/"):
+        gemini_model_info = litellm.model_cost.get(f"gemini/{model}")
+        if (
+            gemini_model_info is not None
+            and gemini_model_info.get("supports_response_schema") is True
+        ):
+            return True
+
     _supports_response_schema = supports_response_schema(
         model=model, custom_llm_provider=_custom_llm_provider
     )
-    if _supports_response_schema is False:
-        exact_model_info = litellm.model_cost.get(model)
-        if (
-            exact_model_info is not None
-            and exact_model_info.get("supports_response_schema") is False
-        ):
-            return False
-
-        model_cost_keys = [model]
-        if custom_llm_provider == "gemini" and not model.startswith("gemini/"):
-            model_cost_keys.append(f"gemini/{model}")
-
-        for model_cost_key in model_cost_keys:
-            model_info = litellm.model_cost.get(model_cost_key)
-            if (
-                model_info is not None
-                and model_info.get("supports_response_schema") is True
-            ):
-                return True
 
     return _supports_response_schema
 
