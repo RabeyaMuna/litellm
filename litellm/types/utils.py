@@ -59,6 +59,19 @@ else:
     VectorStoreSearchResponse = Any
 
 
+def get_valid_models(*args: Any, **kwargs: Any) -> List[str]:
+    """
+    Backwards-compatible lazy export for `litellm.get_valid_models`.
+
+    The implementation lives in `litellm.utils`, but `litellm.__init__` imports this
+    symbol while `litellm.utils` is still loading. Import lazily to avoid a circular
+    import during package initialization.
+    """
+    from litellm.utils import get_valid_models as _get_valid_models
+
+    return _get_valid_models(*args, **kwargs)
+
+
 def _generate_id():  # private helper function
     return "chatcmpl-" + str(uuid.uuid4())
 
