@@ -209,7 +209,7 @@ class BedrockConverseLLM(BaseAWSLLM):
         )
 
         headers = dict(prepped.headers)
-        if client is None or not isinstance(client, AsyncHTTPHandler):
+        if client is None:
             _params = {}
             if timeout is not None:
                 if isinstance(timeout, float) or isinstance(timeout, int):
