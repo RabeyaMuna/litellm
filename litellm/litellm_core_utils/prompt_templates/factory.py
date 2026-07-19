@@ -759,6 +759,16 @@ def convert_to_anthropic_image_obj(
         )
 
 
+def convert_to_anthropic_image_url_obj(
+    openai_image_url: str, format: Optional[str]
+) -> AnthropicMessagesImageParam:
+    source = AnthropicContentParamSourceUrl(type="url", url=openai_image_url)
+    if format is not None:
+        source["media_type"] = format
+
+    return AnthropicMessagesImageParam(type="image", source=source)
+
+
 # The following XML functions will be deprecated once JSON schema support is available on Bedrock and Vertex
 # ------------------------------------------------------------------------------
 def convert_to_anthropic_tool_result_xml(message: dict) -> str:
@@ -862,14 +872,23 @@ def anthropic_messages_pt_xml(messages: list):
                 for m in messages[msg_i]["content"]:
                     if m.get("type", "") == "image_url":
                         format = m["image_url"].get("format")
-                        user_content.append(
-                            {
-                                "type": "image",
-                                "source": convert_to_anthropic_image_obj(
-                                    m["image_url"]["url"], format=format
-                                ),
-                            }
-                        )
+                        image_url = m["image_url"]["url"]
+                        if format is not None and image_url.startswith("http"):
+                            user_content.append(
+                                convert_to_anthropic_image_url_obj(
+                                    openai_image_url=image_url,
+                                    format=format,
+                                )
+                            )
+                        else:
+                            user_content.append(
+                                {
+                                    "type": "image",
+                                    "source": convert_to_anthropic_image_obj(
+                                        image_url, format=format
+                                    ),
+                                }
+                            )
                     elif m.get("type", "") == "text":
                         user_content.append({"type": "text", "text": m["text"]})
             else:
@@ -1569,16 +1588,27 @@ def anthropic_messages_pt(  # noqa: PLR0915
                                 image_chunk = convert_to_anthropic_image_obj(
                                     openai_image_url=m["image_url"], format=None
                                 )
+                                _anthropic_content_element = (
+                                    _anthropic_content_element_factory(image_chunk)
+                                )
                             else:
                                 format = m["image_url"].get("format")
-                                image_chunk = convert_to_anthropic_image_obj(
-                                    openai_image_url=m["image_url"]["url"],
-                                    format=format,
-                                )
-
-                            _anthropic_content_element = (
-                                _anthropic_content_element_factory(image_chunk)
-                            )
+                                image_url = m["image_url"]["url"]
+                                if format is not None and image_url.startswith("http"):
+                                    _anthropic_content_element = (
+                                        convert_to_anthropic_image_url_obj(
+                                            openai_image_url=image_url,
+                                            format=format,
+                                        )
+                                    )
+                                else:
+                                    image_chunk = convert_to_anthropic_image_obj(
+                                        openai_image_url=image_url,
+                                        format=format,
+                                    )
+                                    _anthropic_content_element = (
+                                        _anthropic_content_element_factory(image_chunk)
+                                    )
                             _content_element = add_cache_control_to_content(
                                 anthropic_content_element=_anthropic_content_element,
                                 orignal_content_element=dict(m),
