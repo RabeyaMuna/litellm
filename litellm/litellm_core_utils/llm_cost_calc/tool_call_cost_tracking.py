@@ -20,6 +20,8 @@ from litellm.types.utils import (
     Usage,
 )
 
+ANTHROPIC_WEB_SEARCH_DEFAULT_COST_PER_REQUEST = 0.01
+
 
 class StandardBuiltInToolCostTracking:
     """
@@ -70,6 +72,15 @@ class StandardBuiltInToolCostTracking:
                     model_info=model_info,
                 )
             if result is None:
+                anthropic_web_search_cost = (
+                    StandardBuiltInToolCostTracking._get_anthropic_web_search_cost_without_model_info(
+                        model=model,
+                        usage=usage,
+                        custom_llm_provider=custom_llm_provider,
+                    )
+                )
+                if anthropic_web_search_cost is not None:
+                    return anthropic_web_search_cost
                 return StandardBuiltInToolCostTracking.get_cost_for_web_search(
                     web_search_options=standard_built_in_tools_params.get(
                         "web_search_options", None
@@ -90,6 +101,27 @@ class StandardBuiltInToolCostTracking:
             )
 
         return 0.0
+
+    @staticmethod
+    def _get_anthropic_web_search_cost_without_model_info(
+        model: str,
+        usage: Optional[Usage],
+        custom_llm_provider: Optional[str] = None,
+    ) -> Optional[float]:
+        if (
+            usage is None
+            or usage.server_tool_use is None
+            or usage.server_tool_use.web_search_requests is None
+        ):
+            return None
+        if custom_llm_provider not in {None, "anthropic"}:
+            return None
+        if not (model.startswith("claude-") or model.startswith("anthropic/claude-")):
+            return None
+        return (
+            ANTHROPIC_WEB_SEARCH_DEFAULT_COST_PER_REQUEST
+            * usage.server_tool_use.web_search_requests
+        )
 
     @staticmethod
     def response_object_includes_web_search_call(
