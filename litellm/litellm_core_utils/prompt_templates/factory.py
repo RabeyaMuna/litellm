@@ -36,7 +36,7 @@ from litellm.types.llms.vertex_ai import PartType as VertexPartType
 from litellm.types.utils import GenericImageParsingChunk
 
 from .common_utils import convert_content_list_to_str, is_non_content_values_set
-from .image_handling import convert_url_to_base64
+from .image_handling import IMAGE_FETCH_HEADERS, convert_url_to_base64
 
 
 def default_pt(messages):
@@ -2447,7 +2447,9 @@ class BedrockImageProcessor:
                 params={"concurrent_limit": 1},
             )
             # Send a GET request to the image URL
-            response = await client.get(image_url, follow_redirects=True)
+            response = await client.get(
+                image_url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             return BedrockImageProcessor._post_call_image_processing(response)
@@ -2460,7 +2462,9 @@ class BedrockImageProcessor:
         try:
             client = HTTPHandler(concurrent_limit=1)
             # Send a GET request to the image URL
-            response = client.get(image_url, follow_redirects=True)
+            response = client.get(
+                image_url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             return BedrockImageProcessor._post_call_image_processing(response)
