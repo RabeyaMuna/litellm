@@ -369,6 +369,37 @@ async def test_bedrock_process_image_async_factory():
     print(f"content_block: {content_block}")
 
 
+@pytest.mark.asyncio
+async def test_bedrock_process_image_async_uses_format_for_http_url(monkeypatch):
+    from litellm.litellm_core_utils.prompt_templates import factory
+    from litellm.litellm_core_utils.prompt_templates.factory import (
+        BedrockImageProcessor,
+    )
+
+    monkeypatch.setattr(
+        factory,
+        "convert_url_to_base64",
+        lambda url: "data:image/png;base64,aW1hZ2U=",
+    )
+
+    async def _raise_if_called(image_url):
+        raise AssertionError("get_image_details_async should not be called")
+
+    monkeypatch.setattr(
+        BedrockImageProcessor,
+        "get_image_details_async",
+        _raise_if_called,
+    )
+
+    content_block = await BedrockImageProcessor.process_image_async(
+        image_url="https://example.com/image.png",
+        format="image/png",
+    )
+
+    assert content_block["image"]["format"] == "png"
+    assert content_block["image"]["source"]["bytes"] == "aW1hZ2U="
+
+
 def test_unpack_defs_resolves_nested_ref_inside_anyof_items():
     """Ensure unpack_defs correctly resolves $ref inside items within anyOf (Issue #11372)."""
     from litellm.litellm_core_utils.prompt_templates.common_utils import unpack_defs
