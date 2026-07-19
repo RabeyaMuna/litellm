@@ -54,6 +54,18 @@ def get_supports_response_schema(
         _custom_llm_provider = "vertex_ai"
 
     normalized_model = model.removeprefix("models/")
+    gemini_model_name = (
+        normalized_model.split("/", 1)[1]
+        if normalized_model.startswith("gemini/")
+        else normalized_model
+    )
+    is_google_gemini_model = (
+        custom_llm_provider == "gemini" and gemini_model_name.startswith("gemini-")
+    )
+
+    if is_google_gemini_model:
+        return True
+
     exact_model_info = litellm.model_cost.get(model) or litellm.model_cost.get(
         normalized_model
     )

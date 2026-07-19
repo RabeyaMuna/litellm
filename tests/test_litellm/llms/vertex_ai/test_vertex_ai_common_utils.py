@@ -121,7 +121,7 @@ def test_gemini_response_schema_support_defaults_true_for_gemini_spec_model(
 def test_gemini_response_schema_support_default_does_not_override_exact_false(
     monkeypatch,
 ):
-    """Exact model metadata should still disable native response_schema support."""
+    """Exact custom model metadata should still disable native response_schema support."""
 
     monkeypatch.setattr(
         vertex_common_utils,
@@ -130,13 +130,13 @@ def test_gemini_response_schema_support_default_does_not_override_exact_false(
     )
     monkeypatch.setitem(
         litellm.model_cost,
-        "gemini/gemini-1.5-pro",
+        "gemini/custom-schema-model",
         {"supports_response_schema": False},
     )
 
     assert (
         get_supports_response_schema(
-            model="gemini/gemini-1.5-pro", custom_llm_provider="gemini"
+            model="gemini/custom-schema-model", custom_llm_provider="gemini"
         )
         is False
     )
