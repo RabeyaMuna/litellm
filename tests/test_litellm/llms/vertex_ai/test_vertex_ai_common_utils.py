@@ -45,6 +45,23 @@ def test_gemini_response_schema_support_checks_prefixed_model_cost(monkeypatch):
     )
 
 
+def test_gemini_response_schema_support_checks_models_prefix(monkeypatch):
+    """Google API model names may include a models/ prefix before request build."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="models/gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
 def test_gemini_response_schema_support_respects_explicit_false(monkeypatch):
     """An exact model-level false should not be overridden by prefixed metadata."""
 
