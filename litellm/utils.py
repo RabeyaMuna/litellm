@@ -1934,6 +1934,24 @@ def _supports_provider_info_factory(
     return None
 
 
+def _supports_model_info_factory(
+    model: str, custom_llm_provider: Optional[str], key: str
+) -> Optional[Literal[True]]:
+    """
+    Check if the given model supports a feature based on model_cost metadata.
+    """
+    try:
+        model_info = _get_model_info_helper(
+            model=model, custom_llm_provider=custom_llm_provider
+        )
+    except Exception:
+        return None
+
+    if model_info.get(key, False) is True:
+        return True
+    return None
+
+
 def _supports_factory(model: str, custom_llm_provider: Optional[str], key: str) -> bool:
     """
     Check if the given model supports function calling and return a boolean value.
@@ -1971,6 +1989,12 @@ def _supports_factory(model: str, custom_llm_provider: Optional[str], key: str) 
         verbose_logger.debug(
             f"Model not found or error in checking {key} support. You passed model={model}, custom_llm_provider={custom_llm_provider}. Error: {str(e)}"
         )
+
+        supported_by_model_info = _supports_model_info_factory(
+            model, custom_llm_provider, key
+        )
+        if supported_by_model_info is not None:
+            return supported_by_model_info
 
         supported_by_provider = _supports_provider_info_factory(
             model, custom_llm_provider, key
