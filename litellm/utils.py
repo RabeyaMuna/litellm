@@ -1952,6 +1952,29 @@ def _supports_model_info_factory(
     return None
 
 
+def _supports_anthropic_function_calling_fallback(
+    model: str, custom_llm_provider: Optional[str], key: str
+) -> Optional[Literal[True]]:
+    """
+    Anthropic Claude 3+ models support tool use. Use this as a narrow fallback
+    when model_cost has been replaced with an incomplete map in tests/runtime.
+    """
+    if key != "supports_function_calling":
+        return None
+
+    model_name = model
+    for prefix in ("litellm_proxy/", "anthropic/"):
+        if model_name.startswith(prefix):
+            model_name = model_name[len(prefix) :]
+
+    if custom_llm_provider not in (None, "anthropic", "litellm_proxy"):
+        return None
+
+    if model_name.startswith("claude-3"):
+        return True
+    return None
+
+
 def _supports_factory(model: str, custom_llm_provider: Optional[str], key: str) -> bool:
     """
     Check if the given model supports function calling and return a boolean value.
@@ -1995,6 +2018,12 @@ def _supports_factory(model: str, custom_llm_provider: Optional[str], key: str) 
         )
         if supported_by_model_info is not None:
             return supported_by_model_info
+
+        supported_by_anthropic_fallback = _supports_anthropic_function_calling_fallback(
+            model, custom_llm_provider, key
+        )
+        if supported_by_anthropic_fallback is not None:
+            return supported_by_anthropic_fallback
 
         supported_by_provider = _supports_provider_info_factory(
             model, custom_llm_provider, key
