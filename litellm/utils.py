@@ -1970,7 +1970,7 @@ def _supports_anthropic_function_calling_fallback(
     if custom_llm_provider not in (None, "anthropic", "litellm_proxy"):
         return None
 
-    if model_name.startswith("claude-3"):
+    if re.match(r"^claude-3(?:-\d+)?-(haiku|sonnet|opus)-\d{8}$", model_name):
         return True
     return None
 
