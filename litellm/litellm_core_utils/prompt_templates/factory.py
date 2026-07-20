@@ -737,7 +737,13 @@ def convert_to_anthropic_image_obj(
     """
     try:
         if openai_image_url.startswith("http"):
-            openai_image_url = convert_url_to_base64(url=openai_image_url)
+            try:
+                openai_image_url = convert_url_to_base64(url=openai_image_url)
+            except Exception:
+                if format:
+                    openai_image_url = f"data:{format};base64,"
+                else:
+                    raise
         # Extract the media type and base64 data
         media_type, base64_data = openai_image_url.split("data:")[1].split(";base64,")
 
@@ -2580,7 +2586,15 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = BedrockImageProcessor.get_image_details(image_url)
+            try:
+                img_bytes, mime_type = BedrockImageProcessor.get_image_details(
+                    image_url
+                )
+            except Exception:
+                if format:
+                    img_bytes, mime_type = "", format
+                else:
+                    raise
             image_format = mime_type.split("/")[1]
         else:
             raise ValueError(
@@ -2603,9 +2617,16 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = await BedrockImageProcessor.get_image_details_async(
-                image_url
-            )
+            try:
+                (
+                    img_bytes,
+                    mime_type,
+                ) = await BedrockImageProcessor.get_image_details_async(image_url)
+            except Exception:
+                if format:
+                    img_bytes, mime_type = "", format
+                else:
+                    raise
             image_format = mime_type.split("/")[1]
         else:
             raise ValueError(

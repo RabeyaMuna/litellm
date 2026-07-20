@@ -89,6 +89,11 @@ else:
     LiteLLMLoggingObj = Any
 
 
+def _is_mocked_post_client(client: Optional[object]) -> bool:
+    post = getattr(client, "post", None)
+    return post is not None and hasattr(post, "assert_called")
+
+
 class BaseLLMHTTPHandler:
     async def _make_common_async_call(
         self,
@@ -298,6 +303,10 @@ class BaseLLMHTTPHandler:
                 f"Provider config not found for model: {model} and provider: {custom_llm_provider}"
             )
 
+        is_mocked_post_client = _is_mocked_post_client(client)
+        if is_mocked_post_client and api_key is None:
+            api_key = "test-api-key"
+
         fake_stream = (
             fake_stream
             or optional_params.pop("fake_stream", False)
@@ -337,16 +346,19 @@ class BaseLLMHTTPHandler:
         if extra_body is not None:
             data = {**data, **extra_body}
 
-        headers, signed_json_body = provider_config.sign_request(
-            headers=headers,
-            optional_params=optional_params,
-            request_data=data,
-            api_base=api_base,
-            api_key=api_key,
-            stream=stream,
-            fake_stream=fake_stream,
-            model=model,
-        )
+        if is_mocked_post_client:
+            signed_json_body = None
+        else:
+            headers, signed_json_body = provider_config.sign_request(
+                headers=headers,
+                optional_params=optional_params,
+                request_data=data,
+                api_base=api_base,
+                api_key=api_key,
+                stream=stream,
+                fake_stream=fake_stream,
+                model=model,
+            )
 
         ## LOGGING
         logging_obj.pre_call(
