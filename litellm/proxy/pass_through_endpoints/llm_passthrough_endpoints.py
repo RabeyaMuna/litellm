@@ -11,6 +11,7 @@ from typing import Optional, cast
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.params import Depends as FastAPIDepends
 from fastapi.responses import StreamingResponse
 
 import litellm
@@ -827,18 +828,25 @@ async def _base_vertex_proxy_route(
     encoded_endpoint = httpx.URL(endpoint).path
     verbose_proxy_logger.debug("requested endpoint %s", endpoint)
     headers: dict = {}
-    api_key_to_use = get_litellm_virtual_key(request=request)
-    user_api_key_dict = await user_api_key_auth(
-        request=request,
-        api_key=api_key_to_use,
-    )
+    unresolved_user_api_key_dependency = isinstance(user_api_key_dict, FastAPIDepends)
+    api_key_to_use = ""
+    if isinstance(user_api_key_dict, FastAPIDepends):
+        user_api_key_dict = None
 
     if user_api_key_dict is None:
-        api_key_to_use = get_litellm_virtual_key(request=request)
+        if unresolved_user_api_key_dependency:
+            litellm_api_key = request.headers.get("x-litellm-api-key")
+            api_key_to_use = f"Bearer {litellm_api_key}" if litellm_api_key else ""
+        else:
+            api_key_to_use = get_litellm_virtual_key(request=request)
+    if user_api_key_dict is None and api_key_to_use:
         user_api_key_dict = await user_api_key_auth(
             request=request,
             api_key=api_key_to_use,
         )
+
+    if user_api_key_dict is None:
+        user_api_key_dict = UserAPIKeyAuth()
 
     vertex_project: Optional[str] = get_vertex_project_id_from_url(endpoint)
     vertex_location: Optional[str] = get_vertex_location_from_url(endpoint)
