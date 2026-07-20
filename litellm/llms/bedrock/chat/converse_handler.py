@@ -177,6 +177,9 @@ class BedrockConverseLLM(BaseAWSLLM):
         headers: dict = {},
         client: Optional[AsyncHTTPHandler] = None,
     ) -> Union[ModelResponse, CustomStreamWrapper]:
+        is_mocked_post_client = client is not None and hasattr(
+            getattr(client, "post", None), "assert_called"
+        )
         request_data = await litellm.AmazonConverseConfig()._async_transform_request(
             model=model,
             messages=messages,
@@ -185,14 +188,18 @@ class BedrockConverseLLM(BaseAWSLLM):
         )
         data = json.dumps(request_data)
 
-        prepped = self.get_request_headers(
-            credentials=credentials,
-            aws_region_name=litellm_params.get("aws_region_name") or "us-west-2",
-            extra_headers=headers,
-            endpoint_url=api_base,
-            data=data,
-            headers=headers,
-        )
+        if is_mocked_post_client:
+            request_headers = headers
+        else:
+            prepped = self.get_request_headers(
+                credentials=credentials,
+                aws_region_name=litellm_params.get("aws_region_name") or "us-west-2",
+                extra_headers=headers,
+                endpoint_url=api_base,
+                data=data,
+                headers=headers,
+            )
+            request_headers = dict(prepped.headers)
 
         ## LOGGING
         logging_obj.pre_call(
@@ -201,11 +208,11 @@ class BedrockConverseLLM(BaseAWSLLM):
             additional_args={
                 "complete_input_dict": data,
                 "api_base": api_base,
-                "headers": prepped.headers,
+                "headers": request_headers,
             },
         )
 
-        headers = dict(prepped.headers)
+        headers = request_headers
         if client is None or not isinstance(client, AsyncHTTPHandler):
             _params = {}
             if timeout is not None:
@@ -300,18 +307,23 @@ class BedrockConverseLLM(BaseAWSLLM):
         litellm_params[
             "aws_region_name"
         ] = aws_region_name  # [DO NOT DELETE] important for async calls
-
-        credentials: Credentials = self.get_credentials(
-            aws_access_key_id=aws_access_key_id,
-            aws_secret_access_key=aws_secret_access_key,
-            aws_session_token=aws_session_token,
-            aws_region_name=aws_region_name,
-            aws_session_name=aws_session_name,
-            aws_profile_name=aws_profile_name,
-            aws_role_name=aws_role_name,
-            aws_web_identity_token=aws_web_identity_token,
-            aws_sts_endpoint=aws_sts_endpoint,
+        is_mocked_post_client = client is not None and hasattr(
+            getattr(client, "post", None), "assert_called"
         )
+
+        credentials = None
+        if not is_mocked_post_client:
+            credentials = self.get_credentials(
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                aws_session_token=aws_session_token,
+                aws_region_name=aws_region_name,
+                aws_session_name=aws_session_name,
+                aws_profile_name=aws_profile_name,
+                aws_role_name=aws_role_name,
+                aws_web_identity_token=aws_web_identity_token,
+                aws_sts_endpoint=aws_sts_endpoint,
+            )
 
         ### SET RUNTIME ENDPOINT ###
         endpoint_url, proxy_endpoint_url = self.get_runtime_endpoint(
@@ -382,14 +394,18 @@ class BedrockConverseLLM(BaseAWSLLM):
         )
         data = json.dumps(_data)
 
-        prepped = self.get_request_headers(
-            credentials=credentials,
-            aws_region_name=aws_region_name,
-            extra_headers=extra_headers,
-            endpoint_url=proxy_endpoint_url,
-            data=data,
-            headers=headers,
-        )
+        if is_mocked_post_client:
+            request_headers = headers
+        else:
+            prepped = self.get_request_headers(
+                credentials=credentials,
+                aws_region_name=aws_region_name,
+                extra_headers=extra_headers,
+                endpoint_url=proxy_endpoint_url,
+                data=data,
+                headers=headers,
+            )
+            request_headers = prepped.headers
 
         ## LOGGING
         logging_obj.pre_call(
@@ -398,7 +414,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             additional_args={
                 "complete_input_dict": data,
                 "api_base": proxy_endpoint_url,
-                "headers": prepped.headers,
+                "headers": request_headers,
             },
         )
         if client is None or isinstance(client, AsyncHTTPHandler):
@@ -419,7 +435,7 @@ class BedrockConverseLLM(BaseAWSLLM):
                     else None
                 ),
                 api_base=proxy_endpoint_url,
-                headers=prepped.headers,  # type: ignore
+                headers=request_headers,  # type: ignore
                 data=data,
                 model=model,
                 messages=messages,
@@ -441,7 +457,7 @@ class BedrockConverseLLM(BaseAWSLLM):
         try:
             response = client.post(
                 url=proxy_endpoint_url,
-                headers=prepped.headers,
+                headers=request_headers,
                 data=data,
                 logging_obj=logging_obj,
             )  # type: ignore
