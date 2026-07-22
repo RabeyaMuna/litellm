@@ -89,7 +89,9 @@ class StandardBuiltInToolCostTracking:
             model_info = StandardBuiltInToolCostTracking._safe_get_model_info(
                 model=model, custom_llm_provider=custom_llm_provider
             )
-            if custom_llm_provider == "anthropic":
+            if StandardBuiltInToolCostTracking._usage_includes_web_search_requests(
+                usage=usage
+            ):
                 return (
                     StandardBuiltInToolCostTracking.get_cost_for_anthropic_web_search(
                         model_info=model_info,
@@ -117,6 +119,15 @@ class StandardBuiltInToolCostTracking:
         return 0.0
 
     @staticmethod
+    def _usage_includes_web_search_requests(usage: Optional[Usage] = None) -> bool:
+        return (
+            usage is not None
+            and hasattr(usage, "server_tool_use")
+            and usage.server_tool_use is not None
+            and usage.server_tool_use.web_search_requests is not None
+        )
+
+    @staticmethod
     def response_object_includes_web_search_call(
         response_object: Any, usage: Optional[Usage] = None
     ) -> bool:
@@ -137,11 +148,8 @@ class StandardBuiltInToolCostTracking:
             return StandardBuiltInToolCostTracking.response_includes_output_type(
                 response_object=response_object, output_type="web_search_call"
             )
-        elif (
-            usage is not None
-            and hasattr(usage, "server_tool_use")
-            and usage.server_tool_use is not None
-            and usage.server_tool_use.web_search_requests is not None
+        elif StandardBuiltInToolCostTracking._usage_includes_web_search_requests(
+            usage=usage
         ):
             return True
         return False
