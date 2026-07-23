@@ -6767,6 +6767,8 @@ class ProviderConfigManager:
             return litellm.DataRobotConfig()
         elif litellm.LlmProviders.GEMINI == provider:
             return litellm.GoogleAIStudioGeminiConfig()
+        elif litellm.LlmProviders.GRADIENT_AI == provider:
+            return litellm.GradientAIConfig()
         elif (
             litellm.LlmProviders.AI21 == provider
             or litellm.LlmProviders.AI21_CHAT == provider
