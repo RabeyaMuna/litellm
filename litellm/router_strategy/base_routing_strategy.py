@@ -230,7 +230,9 @@ class BaseRoutingStrategy(ABC):
             # 1. Push all provider spend increments to Redis
             redis_values = await self._push_in_memory_increments_to_redis()
             if redis_values is None:
-                return
+                redis_values = await self.dual_cache.redis_cache.async_batch_get_cache(
+                    key_list=cache_keys_list
+                )
 
             # 4. Merge
             for key in cache_keys_list:
