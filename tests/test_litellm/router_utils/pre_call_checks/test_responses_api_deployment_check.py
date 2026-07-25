@@ -17,13 +17,12 @@ from litellm.types.llms.openai import (
     ResponseAPIUsage,
     ResponseCompletedEvent,
     ResponsesAPIResponse,
-    ResponseTextConfig,
 )
 from litellm.types.utils import StandardLoggingPayload
 
 
 @pytest.mark.asyncio
-async def test_responses_api_routing_with_previous_response_id():
+async def test_async_responses_api_routing_with_previous_response_id():
     """
     Test that when using a previous_response_id, the request is sent to the same model_id
     """
@@ -79,6 +78,7 @@ async def test_responses_api_routing_with_previous_response_id():
             self._json_data = json_data
             self.status_code = status_code
             self.text = json.dumps(json_data)
+            self.headers = {}
 
         def json(self):
             return self._json_data
@@ -109,7 +109,7 @@ async def test_responses_api_routing_with_previous_response_id():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -150,7 +150,7 @@ async def test_responses_api_routing_with_previous_response_id():
 
 
 @pytest.mark.asyncio
-async def test_routing_without_previous_response_id():
+async def test_async_routing_without_previous_response_id():
     """
     Test that normal routing (load balancing) works when no previous_response_id is provided
     """
@@ -199,6 +199,7 @@ async def test_routing_without_previous_response_id():
             self._json_data = json_data
             self.status_code = status_code
             self.text = json.dumps(json_data)
+            self.headers = {}
 
         def json(self):
             return self._json_data
@@ -249,7 +250,7 @@ async def test_routing_without_previous_response_id():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -274,7 +275,7 @@ async def test_routing_without_previous_response_id():
 
 
 @pytest.mark.asyncio
-async def test_previous_response_id_not_in_cache():
+async def test_async_previous_response_id_not_in_cache():
     """
     Test behavior when a previous_response_id is provided but not found in cache
     """
@@ -327,6 +328,7 @@ async def test_previous_response_id_not_in_cache():
             self._json_data = json_data
             self.status_code = status_code
             self.text = json.dumps(json_data)
+            self.headers = {}
 
         def json(self):
             return self._json_data
@@ -358,7 +360,7 @@ async def test_previous_response_id_not_in_cache():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -382,7 +384,7 @@ async def test_previous_response_id_not_in_cache():
 
 
 @pytest.mark.asyncio
-async def test_multiple_response_ids_routing():
+async def test_async_multiple_response_ids_routing():
     """
     Test that different response IDs correctly route to their respective original deployments
     """
@@ -480,6 +482,7 @@ async def test_multiple_response_ids_routing():
             self._json_data = json_data
             self.status_code = status_code
             self.text = json.dumps(json_data)
+            self.headers = {}
 
         def json(self):
             return self._json_data
@@ -511,7 +514,7 @@ async def test_multiple_response_ids_routing():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
         new_callable=AsyncMock,
     ) as mock_post:
         # For the first request, return response from deployment 1
