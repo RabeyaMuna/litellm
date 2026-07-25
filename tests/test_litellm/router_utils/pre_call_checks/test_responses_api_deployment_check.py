@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 from typing import Optional
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -74,14 +74,10 @@ async def test_responses_api_routing_with_previous_response_id():
         "user": None,
     }
 
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self._json_data = json_data
-            self.status_code = status_code
-            self.text = json.dumps(json_data)
-
-        def json(self):
-            return self._json_data
+    # Mock all endpoints
+    respx.post(url__regex=r"https://mock-endpoint.*\.openai\.azure\.com/.*").mock(
+        return_value=respx.MockResponse(200, json=mock_response_data)
+    )
 
     router = litellm.Router(
         model_list=[
@@ -108,45 +104,32 @@ async def test_responses_api_routing_with_previous_response_id():
     )
     MODEL = "azure-computer-use-preview"
 
-    with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
-        new_callable=AsyncMock,
-    ) as mock_post:
-        # Configure the mock to return our response
-        mock_post.return_value = MockResponse(mock_response_data, 200)
+    # Make the initial request
+    # litellm._turn_on_debug()
+    response = await router.aresponses(
+        model=MODEL,
+        input="Hello, how are you?",
+        truncation="auto",
+    )
+    print("RESPONSE", response)
 
-        # Make the initial request
-        # litellm._turn_on_debug()
+    # Store the model_id from the response
+    expected_model_id = response._hidden_params["model_id"]
+    response_id = response.id
+
+    print("Response ID=", response_id, "came from model_id=", expected_model_id)
+
+    # Make 10 other requests with previous_response_id, assert that they are sent to the same model_id
+    for i in range(10):
         response = await router.aresponses(
             model=MODEL,
-            input="Hello, how are you?",
+            input=f"Follow-up question {i+1}",
             truncation="auto",
+            previous_response_id=response_id,
         )
-        print("RESPONSE", response)
 
-        # Store the model_id from the response
-        expected_model_id = response._hidden_params["model_id"]
-        response_id = response.id
-
-        print("Response ID=", response_id, "came from model_id=", expected_model_id)
-
-        # Make 10 other requests with previous_response_id, assert that they are sent to the same model_id
-        for i in range(10):
-            # Reset the mock for the next call
-            mock_post.reset_mock()
-
-            # Set up the mock to return our response again
-            mock_post.return_value = MockResponse(mock_response_data, 200)
-
-            response = await router.aresponses(
-                model=MODEL,
-                input=f"Follow-up question {i+1}",
-                truncation="auto",
-                previous_response_id=response_id,
-            )
-
-            # Assert the model_id is preserved
-            assert response._hidden_params["model_id"] == expected_model_id
+        # Assert the model_id is preserved
+        assert response._hidden_params["model_id"] == expected_model_id
 
 
 @pytest.mark.asyncio
@@ -194,14 +177,13 @@ async def test_routing_without_previous_response_id():
         "user": None,
     }
 
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self._json_data = json_data
-            self.status_code = status_code
-            self.text = json.dumps(json_data)
-
-        def json(self):
-            return self._json_data
+    # Create mock aiohttp response
+    mock_aiohttp_response = AsyncMock()
+    mock_aiohttp_response.status = 200
+    mock_aiohttp_response.json = AsyncMock(return_value=mock_response_data)
+    mock_aiohttp_response.text = json.dumps(mock_response_data)
+    mock_aiohttp_response.__aenter__ = AsyncMock(return_value=mock_aiohttp_response)
+    mock_aiohttp_response.__aexit__ = AsyncMock(return_value=None)
 
     # Create a router with two identical deployments to test load balancing
     router = litellm.Router(
@@ -248,13 +230,8 @@ async def test_routing_without_previous_response_id():
 
     MODEL = "azure-computer-use-preview"
 
-    with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
-        new_callable=AsyncMock,
-    ) as mock_post:
-        # Configure the mock to return our response
-        mock_post.return_value = MockResponse(mock_response_data, 200)
-
+    # Mock aiohttp client session request
+    with patch("aiohttp.ClientSession.request", return_value=mock_aiohttp_response):
         # Make multiple requests and verify we're hitting different deployments
         used_model_ids = set()
 
@@ -274,6 +251,7 @@ async def test_routing_without_previous_response_id():
 
 
 @pytest.mark.asyncio
+@respx.mock
 async def test_previous_response_id_not_in_cache():
     """
     Test behavior when a previous_response_id is provided but not found in cache
@@ -322,14 +300,10 @@ async def test_previous_response_id_not_in_cache():
         "user": None,
     }
 
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self._json_data = json_data
-            self.status_code = status_code
-            self.text = json.dumps(json_data)
-
-        def json(self):
-            return self._json_data
+    # Mock all endpoints
+    respx.post(url__regex=r"https://mock-endpoint-\d+\.openai\.azure\.com/.*").mock(
+        return_value=respx.MockResponse(200, json=mock_response_data)
+    )
 
     router = litellm.Router(
         model_list=[
@@ -357,31 +331,25 @@ async def test_previous_response_id_not_in_cache():
 
     MODEL = "azure-computer-use-preview"
 
-    with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
-        new_callable=AsyncMock,
-    ) as mock_post:
-        # Configure the mock to return our response
-        mock_post.return_value = MockResponse(mock_response_data, 200)
+    # Make a request with a non-existent previous_response_id
+    response = await router.aresponses(
+        model=MODEL,
+        input="Hello, this is a test",
+        truncation="auto",
+        previous_response_id="non-existent-response-id",
+    )
 
-        # Make a request with a non-existent previous_response_id
-        response = await router.aresponses(
-            model=MODEL,
-            input="Hello, this is a test",
-            truncation="auto",
-            previous_response_id="non-existent-response-id",
-        )
+    # Should still get a valid response
+    assert response is not None
+    assert response.id is not None
 
-        # Should still get a valid response
-        assert response is not None
-        assert response.id is not None
-
-        # Since the previous_response_id wasn't found, routing should work normally
-        # We can't assert exactly which deployment was chosen, but we can verify the basics
-        assert response._hidden_params["model_id"] is not None
+    # Since the previous_response_id wasn't found, routing should work normally
+    # We can't assert exactly which deployment was chosen, but we can verify the basics
+    assert response._hidden_params["model_id"] is not None
 
 
 @pytest.mark.asyncio
+@respx.mock
 async def test_multiple_response_ids_routing():
     """
     Test that different response IDs correctly route to their respective original deployments
@@ -475,14 +443,21 @@ async def test_multiple_response_ids_routing():
         "user": None,
     }
 
-    class MockResponse:
-        def __init__(self, json_data, status_code):
-            self._json_data = json_data
-            self.status_code = status_code
-            self.text = json.dumps(json_data)
+    # Use side_effect to return different responses
+    call_count = [0]
 
-        def json(self):
-            return self._json_data
+    def get_response(*args, **kwargs):
+        call_count[0] += 1
+        # Alternate between the two responses
+        if call_count[0] % 2 == 1:
+            return respx.MockResponse(200, json=mock_response_data_1)
+        else:
+            return respx.MockResponse(200, json=mock_response_data_2)
+
+    # Mock all endpoints with side_effect
+    respx.post(url__regex=r"https://mock-endpoint-\d+\.openai\.azure\.com/.*").mock(
+        side_effect=get_response
+    )
 
     router = litellm.Router(
         model_list=[
@@ -510,69 +485,51 @@ async def test_multiple_response_ids_routing():
 
     MODEL = "azure-computer-use-preview"
 
-    with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
-        new_callable=AsyncMock,
-    ) as mock_post:
-        # For the first request, return response from deployment 1
-        mock_post.return_value = MockResponse(mock_response_data_1, 200)
+    # Make the first request to deployment 1
+    response1 = await router.aresponses(
+        model=MODEL,
+        input="Request to deployment 1",
+        truncation="auto",
+    )
 
-        # Make the first request to deployment 1
-        response1 = await router.aresponses(
-            model=MODEL,
-            input="Request to deployment 1",
-            truncation="auto",
-        )
+    # Store details from first response
+    model_id_1 = response1._hidden_params["model_id"]
+    response_id_1 = response1.id
 
-        # Store details from first response
-        model_id_1 = response1._hidden_params["model_id"]
-        response_id_1 = response1.id
+    # Make the second request to deployment 2
+    response2 = await router.aresponses(
+        model=MODEL,
+        input="Request to deployment 2",
+        truncation="auto",
+    )
 
-        # For the second request, return response from deployment 2
-        mock_post.return_value = MockResponse(mock_response_data_2, 200)
+    # Store details from second response
+    model_id_2 = response2._hidden_params["model_id"]
+    response_id_2 = response2.id
 
-        # Make the second request to deployment 2
-        response2 = await router.aresponses(
-            model=MODEL,
-            input="Request to deployment 2",
-            truncation="auto",
-        )
+    # Wait for cache updates
+    await asyncio.sleep(1)
 
-        # Store details from second response
-        model_id_2 = response2._hidden_params["model_id"]
-        response_id_2 = response2.id
+    # Now make follow-up requests using the previous response IDs
 
-        # Wait for cache updates
-        await asyncio.sleep(1)
+    # Follow-up to response 1 should go to model_id_1
+    follow_up_1 = await router.aresponses(
+        model=MODEL,
+        input="Follow up to deployment 1",
+        truncation="auto",
+        previous_response_id=response_id_1,
+    )
 
-        # Now make follow-up requests using the previous response IDs
+    # Verify it went to the correct deployment
+    assert follow_up_1._hidden_params["model_id"] == model_id_1
 
-        # First, reset mock
-        mock_post.reset_mock()
-        mock_post.return_value = MockResponse(mock_response_data_1, 200)
+    # Follow-up to response 2 should go to model_id_2
+    follow_up_2 = await router.aresponses(
+        model=MODEL,
+        input="Follow up to deployment 2",
+        truncation="auto",
+        previous_response_id=response_id_2,
+    )
 
-        # Follow-up to response 1 should go to model_id_1
-        follow_up_1 = await router.aresponses(
-            model=MODEL,
-            input="Follow up to deployment 1",
-            truncation="auto",
-            previous_response_id=response_id_1,
-        )
-
-        # Verify it went to the correct deployment
-        assert follow_up_1._hidden_params["model_id"] == model_id_1
-
-        # Reset mock again
-        mock_post.reset_mock()
-        mock_post.return_value = MockResponse(mock_response_data_2, 200)
-
-        # Follow-up to response 2 should go to model_id_2
-        follow_up_2 = await router.aresponses(
-            model=MODEL,
-            input="Follow up to deployment 2",
-            truncation="auto",
-            previous_response_id=response_id_2,
-        )
-
-        # Verify it went to the correct deployment
-        assert follow_up_2._hidden_params["model_id"] == model_id_2
+    # Verify it went to the correct deployment
+    assert follow_up_2._hidden_params["model_id"] == model_id_2
