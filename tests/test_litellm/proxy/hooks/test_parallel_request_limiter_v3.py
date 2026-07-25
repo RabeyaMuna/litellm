@@ -18,7 +18,6 @@ from litellm.proxy.hooks.parallel_request_limiter_v3 import (
     _PROXY_MaxParallelRequestsHandler_v3 as _PROXY_MaxParallelRequestsHandler,
 )
 from litellm.proxy.utils import InternalUsageCache, ProxyLogging, hash_token
-from litellm.types.utils import ModelResponse, Usage
 
 
 @pytest.mark.flaky(reruns=3)
@@ -407,6 +406,10 @@ async def test_token_rate_limit_type_respected_v3(monkeypatch, token_rate_limit_
     monkeypatch.setattr(
         parallel_request_handler, "get_rate_limit_type", mock_get_rate_limit_type
     )
+
+    # Import inside the test so these classes match the module instance imported
+    # by async_log_success_event, even when earlier tests reload LiteLLM modules.
+    from litellm.types.utils import ModelResponse, Usage
 
     # Create a mock response with different token counts
     mock_usage = Usage(prompt_tokens=20, completion_tokens=30, total_tokens=50)

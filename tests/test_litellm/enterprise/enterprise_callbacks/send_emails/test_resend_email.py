@@ -20,19 +20,25 @@ def mock_env_vars():
 
 @pytest.fixture
 def mock_httpx_client():
-    with mock.patch(
-        "litellm_enterprise.enterprise_callbacks.send_emails.resend_email.get_async_httpx_client"
-    ) as mock_client:
-        # Create a mock response
-        mock_response = mock.AsyncMock(spec=Response)
-        mock_response.status_code = 200
-        mock_response.json.return_value = {"id": "test_email_id"}
+    # Patch the globals used by the imported class directly. Other tests reload
+    # LiteLLM modules, which can make string patch targets point at a newer
+    # module object than this class was imported from.
+    mock_client = mock.Mock()
 
-        # Create a mock client
-        mock_async_client = mock.AsyncMock()
-        mock_async_client.post.return_value = mock_response
-        mock_client.return_value = mock_async_client
+    # Create a mock response
+    mock_response = mock.AsyncMock(spec=Response)
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": "test_email_id"}
 
+    # Create a mock client
+    mock_async_client = mock.AsyncMock()
+    mock_async_client.post.return_value = mock_response
+    mock_client.return_value = mock_async_client
+
+    with mock.patch.dict(
+        ResendEmailLogger.__init__.__globals__,
+        {"get_async_httpx_client": mock_client},
+    ):
         yield mock_async_client
 
 

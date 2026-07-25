@@ -1,5 +1,6 @@
 import os
 import sys
+from contextlib import ExitStack
 from unittest.mock import patch
 
 import pytest
@@ -32,9 +33,20 @@ def mock_env():
 
 @pytest.fixture
 def mock_users_client():
-    with patch(
-        "litellm.proxy.client.cli.commands.users.UsersManagementClient"
-    ) as MockClient:
+    with ExitStack() as stack:
+        MockClient = stack.enter_context(
+            patch("litellm.proxy.client.cli.commands.users.UsersManagementClient")
+        )
+        users_group = cli.commands["users"]
+        for command in users_group.commands.values():
+            callback = command.callback
+            wrapped_callback = getattr(callback, "__wrapped__", callback)
+            stack.enter_context(
+                patch.dict(
+                    wrapped_callback.__globals__,
+                    {"UsersManagementClient": MockClient},
+                )
+            )
         yield MockClient
 
 

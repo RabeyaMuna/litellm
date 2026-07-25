@@ -1,5 +1,6 @@
 # tests/test_budget_endpoints.py
 
+import importlib
 import os
 import sys
 import types
@@ -7,7 +8,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 
-import litellm.proxy.proxy_server as ps
 from litellm.proxy.proxy_server import app
 from litellm.proxy._types import UserAPIKeyAuth, LitellmUserRoles, CommonProxyErrors
 
@@ -20,6 +20,8 @@ sys.path.insert(
 
 @pytest.fixture
 def client_and_mocks(monkeypatch):
+    proxy_server = importlib.import_module("litellm.proxy.proxy_server")
+
     # Setup MagicMock Prisma
     mock_prisma = MagicMock()
     mock_table  = MagicMock()
@@ -31,15 +33,17 @@ def client_and_mocks(monkeypatch):
         litellm_dailyspend   = mock_table,
     )
 
-    # Monkeypatch Mocked Prisma client into the server module
-    monkeypatch.setattr(ps, "prisma_client", mock_prisma)
+    # Endpoint handlers import prisma_client from proxy_server at request time.
+    # Patch the currently loaded module to avoid stale imports after reload-heavy tests.
+    monkeypatch.setattr(proxy_server, "prisma_client", mock_prisma)
 
     # override returned auth user
     fake_user = UserAPIKeyAuth(
         user_id="test_user",
         user_role=LitellmUserRoles.INTERNAL_USER,
     )
-    app.dependency_overrides[ps.user_api_key_auth] = lambda: fake_user
+    app.dependency_overrides[bm.user_api_key_auth] = lambda: fake_user
+    app.dependency_overrides[proxy_server.user_api_key_auth] = lambda: fake_user
 
     client = TestClient(app)
 
@@ -47,7 +51,6 @@ def client_and_mocks(monkeypatch):
 
     # teardown
     app.dependency_overrides.clear()
-    monkeypatch.setattr(ps, "prisma_client", ps.prisma_client)
 
 
 @pytest.mark.asyncio
@@ -78,8 +81,8 @@ async def test_new_budget_db_not_connected(client_and_mocks, monkeypatch):
     client, mock_prisma, mock_table = client_and_mocks
 
     # override the prisma_client that the handler imports at runtime
-    import litellm.proxy.proxy_server as ps
-    monkeypatch.setattr(ps, "prisma_client", None)
+    proxy_server = importlib.import_module("litellm.proxy.proxy_server")
+    monkeypatch.setattr(proxy_server, "prisma_client", None)
 
     # Call /budget/new endpoint
     resp = client.post("/budget/new", json={"budget_id": "no_db", "max_budget": 1.0})
@@ -122,8 +125,8 @@ async def test_update_budget_db_not_connected(client_and_mocks, monkeypatch):
     client, mock_prisma, mock_table = client_and_mocks
 
     # override the prisma_client that the handler imports at runtime
-    import litellm.proxy.proxy_server as ps
-    monkeypatch.setattr(ps, "prisma_client", None)
+    proxy_server = importlib.import_module("litellm.proxy.proxy_server")
+    monkeypatch.setattr(proxy_server, "prisma_client", None)
 
     payload = {"budget_id": "any", "max_budget": 1.0}
     resp = client.post("/budget/update", json=payload)

@@ -309,8 +309,10 @@ async def test_vector_store_access_check_with_permissions():
     mock_vector_store_registry = MagicMock()
     mock_vector_store_registry.get_vector_store_ids_to_run.return_value = ["store-1"]
 
-    with patch("litellm.proxy.proxy_server.prisma_client", mock_prisma_client), patch(
-        "litellm.vector_store_registry", mock_vector_store_registry
+    auth_checks_litellm = vector_store_access_check.__globals__["litellm"]
+
+    with patch("litellm.proxy.proxy_server.prisma_client", mock_prisma_client), patch.object(
+        auth_checks_litellm, "vector_store_registry", mock_vector_store_registry
     ):
         result = await vector_store_access_check(
             request_body=request_body,
@@ -323,8 +325,8 @@ async def test_vector_store_access_check_with_permissions():
     # Test with denied access
     mock_vector_store_registry.get_vector_store_ids_to_run.return_value = ["store-3"]
 
-    with patch("litellm.proxy.proxy_server.prisma_client", mock_prisma_client), patch(
-        "litellm.vector_store_registry", mock_vector_store_registry
+    with patch("litellm.proxy.proxy_server.prisma_client", mock_prisma_client), patch.object(
+        auth_checks_litellm, "vector_store_registry", mock_vector_store_registry
     ):
         with pytest.raises(ProxyException) as exc_info:
             await vector_store_access_check(

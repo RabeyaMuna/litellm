@@ -150,6 +150,9 @@ class TestOpenAIResponsesAPIConfig:
 
     def test_validate_environment(self):
         """Test that validate_environment correctly sets the Authorization header"""
+        config_globals = self.config.validate_environment.__globals__
+        config_litellm = config_globals["litellm"]
+
         # Test with provided API key
         headers = {}
         api_key = "test_api_key"
@@ -164,7 +167,7 @@ class TestOpenAIResponsesAPIConfig:
         # Test with empty headers
         headers = {}
 
-        with patch("litellm.api_key", "litellm_api_key"):
+        with patch.object(config_litellm, "api_key", "litellm_api_key"):
             litellm_params = GenericLiteLLMParams()
             result = self.config.validate_environment(
                 headers=headers, model=self.model, litellm_params=litellm_params
@@ -176,8 +179,8 @@ class TestOpenAIResponsesAPIConfig:
         # Test with existing headers
         headers = {"Content-Type": "application/json"}
 
-        with patch("litellm.openai_key", "openai_key"):
-            with patch("litellm.api_key", None):
+        with patch.object(config_litellm, "openai_key", "openai_key"):
+            with patch.object(config_litellm, "api_key", None):
                 litellm_params = GenericLiteLLMParams()
                 result = self.config.validate_environment(
                     headers=headers, model=self.model, litellm_params=litellm_params
@@ -191,12 +194,9 @@ class TestOpenAIResponsesAPIConfig:
         # Test with environment variable
         headers = {}
 
-        with patch("litellm.api_key", None):
-            with patch("litellm.openai_key", None):
-                with patch(
-                    "litellm.llms.openai.responses.transformation.get_secret_str",
-                    return_value="env_api_key",
-                ):
+        with patch.object(config_litellm, "api_key", None):
+            with patch.object(config_litellm, "openai_key", None):
+                with patch.dict(config_globals, {"get_secret_str": Mock(return_value="env_api_key")}):
                     litellm_params = GenericLiteLLMParams()
                     result = self.config.validate_environment(
                         headers=headers, model=self.model, litellm_params=litellm_params
@@ -207,6 +207,9 @@ class TestOpenAIResponsesAPIConfig:
 
     def test_get_complete_url(self):
         """Test that get_complete_url returns the correct URL"""
+        config_globals = self.config.get_complete_url.__globals__
+        config_litellm = config_globals["litellm"]
+
         # Test with provided API base
         api_base = "https://custom-openai.example.com/v1"
 
@@ -218,7 +221,9 @@ class TestOpenAIResponsesAPIConfig:
         assert result == "https://custom-openai.example.com/v1/responses"
 
         # Test with litellm.api_base
-        with patch("litellm.api_base", "https://litellm-api-base.example.com/v1"):
+        with patch.object(
+            config_litellm, "api_base", "https://litellm-api-base.example.com/v1"
+        ):
             result = self.config.get_complete_url(
                 api_base=None,
                 litellm_params={},
@@ -227,24 +232,21 @@ class TestOpenAIResponsesAPIConfig:
             assert result == "https://litellm-api-base.example.com/v1/responses"
 
         # Test with environment variable
-        with patch("litellm.api_base", None):
-            with patch(
-                "litellm.llms.openai.responses.transformation.get_secret_str",
-                return_value="https://env-api-base.example.com/v1",
+        with patch.object(config_litellm, "api_base", None):
+            with patch.dict(
+                config_globals,
+                {"get_secret_str": Mock(return_value="https://env-api-base.example.com/v1")},
             ):
                 result = self.config.get_complete_url(
                     api_base=None,
                     litellm_params={},
                 )
 
-                assert result == "https://env-api-base.example.com/v1/responses"
+            assert result == "https://env-api-base.example.com/v1/responses"
 
         # Test with default API base
-        with patch("litellm.api_base", None):
-            with patch(
-                "litellm.llms.openai.responses.transformation.get_secret_str",
-                return_value=None,
-            ):
+        with patch.object(config_litellm, "api_base", None):
+            with patch.dict(config_globals, {"get_secret_str": Mock(return_value=None)}):
                 result = self.config.get_complete_url(
                     api_base=None,
                     litellm_params={},

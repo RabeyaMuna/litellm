@@ -359,6 +359,9 @@ class TestWhoamiCommand:
         """Setup for each test"""
         self.runner = CliRunner()
 
+    def _patch_whoami_load_token(self, token_data):
+        return patch.dict(whoami.callback.__globals__, {"load_token": Mock(return_value=token_data)})
+
     def test_whoami_authenticated(self):
         """Test whoami when user is authenticated"""
         token_data = {
@@ -368,7 +371,7 @@ class TestWhoamiCommand:
             'timestamp': time.time() - 3600  # 1 hour ago
         }
         
-        with patch('litellm.proxy.client.cli.commands.auth.load_token', return_value=token_data):
+        with self._patch_whoami_load_token(token_data):
             result = self.runner.invoke(whoami)
             
             assert result.exit_code == 0
@@ -380,7 +383,7 @@ class TestWhoamiCommand:
 
     def test_whoami_not_authenticated(self):
         """Test whoami when user is not authenticated"""
-        with patch('litellm.proxy.client.cli.commands.auth.load_token', return_value=None):
+        with self._patch_whoami_load_token(None):
             result = self.runner.invoke(whoami)
             
             assert result.exit_code == 0
@@ -396,7 +399,7 @@ class TestWhoamiCommand:
             'timestamp': time.time() - (25 * 3600)  # 25 hours ago
         }
         
-        with patch('litellm.proxy.client.cli.commands.auth.load_token', return_value=token_data):
+        with self._patch_whoami_load_token(token_data):
             result = self.runner.invoke(whoami)
             
             assert result.exit_code == 0
@@ -410,7 +413,7 @@ class TestWhoamiCommand:
             # Missing user_email, user_id, user_role
         }
         
-        with patch('litellm.proxy.client.cli.commands.auth.load_token', return_value=token_data):
+        with self._patch_whoami_load_token(token_data):
             result = self.runner.invoke(whoami)
             
             assert result.exit_code == 0
@@ -426,7 +429,7 @@ class TestWhoamiCommand:
             # Missing timestamp
         }
         
-        with patch('litellm.proxy.client.cli.commands.auth.load_token', return_value=token_data), \
+        with self._patch_whoami_load_token(token_data), \
              patch('time.time', return_value=1000):
             
             result = self.runner.invoke(whoami)

@@ -212,11 +212,6 @@ class TestVertexAIPassThroughHandler:
             vertex_credentials=vertex_credentials,
         )
 
-        monkeypatch.setattr(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.passthrough_endpoint_router",
-            pass_through_router,
-        )
-
         endpoint = f"/v1/projects/{vertex_project}/locations/{vertex_location}/publishers/google/models/gemini-1.5-flash:generateContent"
 
         # Mock request
@@ -237,23 +232,35 @@ class TestVertexAIPassThroughHandler:
         test_location = vertex_location
         test_token = vertex_credentials
 
-        with mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._ensure_access_token_async"
-        ) as mock_ensure_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._get_token_and_url"
-        ) as mock_get_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.create_pass_through_route"
-        ) as mock_create_route, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.get_litellm_virtual_key"
-        ) as mock_get_virtual_key, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.user_api_key_auth"
-        ) as mock_user_auth:
-            # Setup mocks
-            mock_ensure_token.return_value = ("test-auth-header", test_project)
-            mock_get_token.return_value = (test_token, "")
-            mock_get_virtual_key.return_value = "Bearer test-key"
-            mock_user_auth.return_value = {"api_key": "test-key"}
+        route_globals = vertex_proxy_route.__globals__
+        base_route_globals = route_globals["_base_vertex_proxy_route"].__globals__
+        mock_ensure_token = AsyncMock(return_value=("test-auth-header", test_project))
+        mock_get_token = Mock(return_value=(test_token, ""))
+        mock_create_route = Mock()
+        mock_get_virtual_key = Mock(return_value="Bearer test-key")
+        mock_user_auth = AsyncMock(return_value={"api_key": "test-key"})
 
+        with (
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_ensure_access_token_async",
+                mock_ensure_token,
+            ),
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_get_token_and_url",
+                mock_get_token,
+            ),
+            patch.dict(
+                base_route_globals,
+                {
+                    "create_pass_through_route": mock_create_route,
+                    "get_litellm_virtual_key": mock_get_virtual_key,
+                    "passthrough_endpoint_router": pass_through_router,
+                    "user_api_key_auth": mock_user_auth,
+                },
+            ),
+        ):
             # Mock create_pass_through_route to return a function that returns a mock response
             mock_endpoint_func = AsyncMock(return_value={"status": "success"})
             mock_create_route.return_value = mock_endpoint_func
@@ -392,11 +399,6 @@ class TestVertexAIPassThroughHandler:
             vertex_credentials=default_credentials,
         )
 
-        monkeypatch.setattr(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.passthrough_endpoint_router",
-            pass_through_router,
-        )
-
         # Use different project/location in request than the default
         endpoint = initial_endpoint
 
@@ -406,20 +408,40 @@ class TestVertexAIPassThroughHandler:
                 "method": "POST",
                 "path": f"/vertex_ai/{endpoint}",
                 "headers": {},
+                "query_string": b"",
             }
         )
         mock_response = Response()
 
-        with mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._ensure_access_token_async"
-        ) as mock_ensure_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._get_token_and_url"
-        ) as mock_get_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.create_pass_through_route"
-        ) as mock_create_route:
-            mock_ensure_token.return_value = ("test-auth-header", default_project)
-            mock_get_token.return_value = (default_credentials, "")
+        route_globals = vertex_proxy_route.__globals__
+        base_route_globals = route_globals["_base_vertex_proxy_route"].__globals__
+        mock_ensure_token = AsyncMock(return_value=("test-auth-header", default_project))
+        mock_get_token = Mock(return_value=(default_credentials, ""))
+        mock_create_route = Mock(return_value=AsyncMock(return_value={"status": "success"}))
+        mock_get_virtual_key = Mock(return_value="Bearer test-key")
+        mock_user_auth = AsyncMock(return_value={"api_key": "test-key"})
 
+        with (
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_ensure_access_token_async",
+                mock_ensure_token,
+            ),
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_get_token_and_url",
+                mock_get_token,
+            ),
+            patch.dict(
+                base_route_globals,
+                {
+                    "create_pass_through_route": mock_create_route,
+                    "get_litellm_virtual_key": mock_get_virtual_key,
+                    "passthrough_endpoint_router": pass_through_router,
+                    "user_api_key_auth": mock_user_auth,
+                },
+            ),
+        ):
             try:
                 await vertex_proxy_route(
                     endpoint=endpoint,
@@ -579,11 +601,6 @@ class TestVertexAIDiscoveryPassThroughHandler:
             vertex_credentials=vertex_credentials,
         )
 
-        monkeypatch.setattr(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.passthrough_endpoint_router",
-            pass_through_router,
-        )
-
         endpoint = f"/v1/projects/{vertex_project}/locations/{vertex_location}/dataStores/default/servingConfigs/default:search"
 
         # Mock request
@@ -604,24 +621,36 @@ class TestVertexAIDiscoveryPassThroughHandler:
         test_location = vertex_location
         test_token = vertex_credentials
 
-        with mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._ensure_access_token_async"
-        ) as mock_ensure_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.vertex_llm_base._get_token_and_url"
-        ) as mock_get_token, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.create_pass_through_route"
-        ) as mock_create_route, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.get_litellm_virtual_key"
-        ) as mock_get_virtual_key, mock.patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.user_api_key_auth"
-        ) as mock_user_auth:
-            # Setup mocks
-            mock_ensure_token.return_value = ("test-auth-header", test_project)
-            mock_get_token.return_value = (test_token, "")
-            mock_get_virtual_key.return_value = "Bearer test-key"
-            mock_user_auth.return_value = {"api_key": "test-key"}
+        route_globals = vertex_discovery_proxy_route.__globals__
+        base_route_globals = route_globals["_base_vertex_proxy_route"].__globals__
+        mock_ensure_token = AsyncMock(return_value=("test-auth-header", test_project))
+        mock_get_token = Mock(return_value=(test_token, ""))
+        mock_create_route = Mock()
+        mock_get_virtual_key = Mock(return_value="Bearer test-key")
+        mock_user_auth = AsyncMock(return_value={"api_key": "test-key"})
 
-            # Mock create_pass_through_route to return a function that returns a mock response
+        with (
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_ensure_access_token_async",
+                mock_ensure_token,
+            ),
+            patch.object(
+                base_route_globals["vertex_llm_base"],
+                "_get_token_and_url",
+                mock_get_token,
+            ),
+            patch.dict(
+                base_route_globals,
+                {
+                    "create_pass_through_route": mock_create_route,
+                    "get_litellm_virtual_key": mock_get_virtual_key,
+                    "passthrough_endpoint_router": pass_through_router,
+                    "user_api_key_auth": mock_user_auth,
+                },
+            ),
+        ):
+            # Setup mocks
             mock_endpoint_func = AsyncMock(return_value={"status": "success"})
             mock_create_route.return_value = mock_endpoint_func
 
@@ -653,29 +682,33 @@ class TestVertexAIDiscoveryPassThroughHandler:
         mock_request.method = "POST"
         mock_response = Mock()
 
-        with patch(
-            "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.user_api_key_auth"
-        ) as mock_auth:
-            mock_auth.return_value = {"api_key": "test-key-123"}
+        route_globals = vertex_discovery_proxy_route.__globals__
+        base_route_globals = route_globals["_base_vertex_proxy_route"].__globals__
+        mock_auth = AsyncMock(return_value={"api_key": "test-key-123"})
+        mock_pass_through = Mock(
+            return_value=AsyncMock(return_value={"status": "success"})
+        )
+        mock_get_virtual_key = Mock(return_value="Bearer test-key-123")
 
-            with patch(
-                "litellm.proxy.pass_through_endpoints.llm_passthrough_endpoints.create_pass_through_route"
-            ) as mock_pass_through:
-                mock_pass_through.return_value = AsyncMock(
-                    return_value={"status": "success"}
-                )
+        with patch.dict(
+            base_route_globals,
+            {
+                "create_pass_through_route": mock_pass_through,
+                "get_litellm_virtual_key": mock_get_virtual_key,
+                "user_api_key_auth": mock_auth,
+            },
+        ):
+            # Call the function
+            result = await vertex_discovery_proxy_route(
+                endpoint="v1/projects/test-project/locations/us-central1/dataStores/default/servingConfigs/default:search",
+                request=mock_request,
+                fastapi_response=mock_response,
+            )
 
-                # Call the function
-                result = await vertex_discovery_proxy_route(
-                    endpoint="v1/projects/test-project/locations/us-central1/dataStores/default/servingConfigs/default:search",
-                    request=mock_request,
-                    fastapi_response=mock_response,
-                )
-
-                # Verify user_api_key_auth was called with the correct Bearer token
-                mock_auth.assert_called_once()
-                call_args = mock_auth.call_args[1]
-                assert call_args["api_key"] == "Bearer test-key-123"
+            # Verify user_api_key_auth was called with the correct Bearer token
+            mock_auth.assert_called_once()
+            call_args = mock_auth.call_args[1]
+            assert call_args["api_key"] == "Bearer test-key-123"
 
 
 @pytest.mark.asyncio
