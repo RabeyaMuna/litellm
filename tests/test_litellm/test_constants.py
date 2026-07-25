@@ -17,6 +17,12 @@ import litellm
 from litellm import constants
 
 
+def test_enterprise_email_budget_alert_constant_is_available():
+    """Enterprise email callbacks expect this compatibility constant to exist."""
+    assert hasattr(constants, "EMAIL_BUDGET_ALERT_MAX_SPEND_ALERT_PERCENTAGE")
+    assert constants.EMAIL_BUDGET_ALERT_MAX_SPEND_ALERT_PERCENTAGE >= 0
+
+
 def test_all_numeric_constants_can_be_overridden():
     """
     Test that all integer and float constants in constants.py can be overridden with environment variables.
