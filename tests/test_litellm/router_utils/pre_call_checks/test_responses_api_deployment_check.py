@@ -109,7 +109,7 @@ async def test_responses_api_routing_with_previous_response_id():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -249,7 +249,7 @@ async def test_routing_without_previous_response_id():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -358,7 +358,7 @@ async def test_previous_response_id_not_in_cache():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
         new_callable=AsyncMock,
     ) as mock_post:
         # Configure the mock to return our response
@@ -511,7 +511,7 @@ async def test_multiple_response_ids_routing():
     MODEL = "azure-computer-use-preview"
 
     with patch(
-        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.single_connection_post_request",
         new_callable=AsyncMock,
     ) as mock_post:
         # For the first request, return response from deployment 1
