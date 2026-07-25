@@ -437,7 +437,7 @@ class DynamicGuardrailParams(TypedDict):
 class GuardrailInfoResponse(BaseModel):
     guardrail_id: Optional[str] = None
     guardrail_name: str
-    litellm_params: Optional[BaseLitellmParams] = None
+    litellm_params: Optional[LitellmParams] = None
     guardrail_info: Optional[Dict] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
