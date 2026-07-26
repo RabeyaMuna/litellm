@@ -240,27 +240,28 @@ def test_prometheus_config_parsing():
     litellm.prometheus_metrics_config = test_config
 
     # Create PrometheusLogger instance
-    logger = PrometheusLogger()
+    with patch("litellm.proxy.proxy_server.premium_user", True):
+        logger = PrometheusLogger()
 
-    # Parse configuration
-    label_filters = logger._parse_prometheus_config()
+        # Parse configuration
+        label_filters = logger._parse_prometheus_config()
 
-    # Verify label filters exist for each metric
-    expected_labels = [
-        "requested_model",
-        "team",
-    ]
+        # Verify label filters exist for each metric
+        expected_labels = [
+            "requested_model",
+            "team",
+        ]
 
-    expected_metrics = [
-        "litellm_deployment_failure_responses",
-        "litellm_deployment_total_requests",
-        "litellm_proxy_failed_requests_metric",
-        "litellm_proxy_total_requests_metric",
-    ]
+        expected_metrics = [
+            "litellm_deployment_failure_responses",
+            "litellm_deployment_total_requests",
+            "litellm_proxy_failed_requests_metric",
+            "litellm_proxy_total_requests_metric",
+        ]
 
-    for metric in expected_metrics:
-        assert metric in label_filters
-        assert label_filters[metric] == expected_labels
+        for metric in expected_metrics:
+            assert metric in label_filters
+            assert label_filters[metric] == expected_labels
 
 
 def test_get_metric_labels():
