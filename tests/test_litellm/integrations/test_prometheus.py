@@ -236,15 +236,14 @@ def test_prometheus_config_parsing():
         }
     ]
 
-    # Set configuration
-    litellm.prometheus_metrics_config = test_config
-
-    # Create PrometheusLogger instance
+    # Resolve/import proxy_server before setting the module-level configuration.
+    # Import-time proxy initialization can otherwise overwrite this test value.
     with patch("litellm.proxy.proxy_server.premium_user", True):
+        litellm.prometheus_metrics_config = test_config
+
         logger = PrometheusLogger()
 
-        # Parse configuration
-        label_filters = logger._parse_prometheus_config()
+        label_filters = logger.label_filters
 
         # Verify label filters exist for each metric
         expected_labels = [
