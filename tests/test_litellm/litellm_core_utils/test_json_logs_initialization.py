@@ -13,6 +13,23 @@ from unittest import mock
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def restore_litellm_modules():
+    """Prevent clean-import tests from replacing modules used by other tests."""
+    original_modules = {
+        name: module
+        for name, module in sys.modules.items()
+        if name.startswith("litellm")
+    }
+
+    yield
+
+    for module in list(sys.modules):
+        if module.startswith("litellm"):
+            del sys.modules[module]
+    sys.modules.update(original_modules)
+
+
 def test_json_logs_initialization():
     """Test that all loggers are properly configured when JSON_LOGS=True"""
     # Reset modules to ensure clean import

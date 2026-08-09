@@ -236,11 +236,11 @@ def test_prometheus_config_parsing():
         }
     ]
 
-    # Resolve/import proxy_server before setting the module-level configuration.
-    # Import-time proxy initialization can otherwise overwrite this test value.
-    with patch("litellm.proxy.proxy_server.premium_user", True):
-        litellm.prometheus_metrics_config = test_config
+    # Set configuration
+    litellm.prometheus_metrics_config = test_config
 
+    # Create PrometheusLogger instance
+    with patch("litellm.proxy.proxy_server.premium_user", True):
         logger = PrometheusLogger()
 
         label_filters = logger.label_filters
