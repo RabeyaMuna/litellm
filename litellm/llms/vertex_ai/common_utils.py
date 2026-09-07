@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union, get_type_hints
+from typing import Any, Literal, get_type_hints
 
 import httpx
 
@@ -16,7 +16,7 @@ class VertexAIError(BaseLLMException):
         self,
         status_code: int,
         message: str,
-        headers: Optional[Union[Dict, httpx.Headers]] = None,
+        headers: dict | httpx.Headers | None = None,
     ):
         super().__init__(message=message, status_code=status_code, headers=headers)
 
@@ -37,9 +37,7 @@ def get_supports_system_message(
             supports_system_message = True
     except Exception as e:
         verbose_logger.warning(
-            "Unable to identify if system message supported. Defaulting to 'False'. Received error message - {}\nAdd it here - https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json".format(
-                str(e)
-            )
+            f"Unable to identify if system message supported. Defaulting to 'False'. Received error message - {e!s}\nAdd it here - https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json"
         )
         supports_system_message = False
 
@@ -53,6 +51,12 @@ def get_supports_response_schema(
     if custom_llm_provider == "vertex_ai_beta":
         _custom_llm_provider = "vertex_ai"
 
+    # Normalize model name: strip 'gemini/' prefix when custom_llm_provider is 'vertex_ai'
+    # This is needed because the model name passed here is like 'gemini/gemini-1.5-pro'
+    # but the supports_response_schema lookup expects normalized names like 'gemini-1.5-pro'
+    if _custom_llm_provider == "vertex_ai" and model.startswith("gemini/"):
+        model = model[len("gemini/"):]
+
     _supports_response_schema = supports_response_schema(
         model=model, custom_llm_provider=_custom_llm_provider
     )
@@ -60,7 +64,7 @@ def get_supports_response_schema(
     return _supports_response_schema
 
 
-from typing import Literal, Optional
+from typing import Literal
 
 all_gemini_url_modes = Literal[
     "chat", "embedding", "batch_embedding", "image_generation"
@@ -70,13 +74,13 @@ all_gemini_url_modes = Literal[
 def _get_vertex_url(
     mode: all_gemini_url_modes,
     model: str,
-    stream: Optional[bool],
-    vertex_project: Optional[str],
-    vertex_location: Optional[str],
+    stream: bool | None,
+    vertex_project: str | None,
+    vertex_location: str | None,
     vertex_api_version: Literal["v1", "v1beta1"],
-) -> Tuple[str, str]:
-    url: Optional[str] = None
-    endpoint: Optional[str] = None
+) -> tuple[str, str]:
+    url: str | None = None
+    endpoint: str | None = None
 
     model = litellm.VertexGeminiConfig.get_model_for_vertex_ai_url(model=model)
     if mode == "chat":
@@ -121,33 +125,25 @@ def _get_vertex_url(
 def _get_gemini_url(
     mode: all_gemini_url_modes,
     model: str,
-    stream: Optional[bool],
-    gemini_api_key: Optional[str],
-) -> Tuple[str, str]:
-    _gemini_model_name = "models/{}".format(model)
+    stream: bool | None,
+    gemini_api_key: str | None,
+) -> tuple[str, str]:
+    _gemini_model_name = f"models/{model}"
     if mode == "chat":
         endpoint = "generateContent"
         if stream is True:
             endpoint = "streamGenerateContent"
-            url = "https://generativelanguage.googleapis.com/v1beta/{}:{}?key={}&alt=sse".format(
-                _gemini_model_name, endpoint, gemini_api_key
-            )
+            url = f"https://generativelanguage.googleapis.com/v1beta/{_gemini_model_name}:{endpoint}?key={gemini_api_key}&alt=sse"
         else:
             url = (
-                "https://generativelanguage.googleapis.com/v1beta/{}:{}?key={}".format(
-                    _gemini_model_name, endpoint, gemini_api_key
-                )
+                f"https://generativelanguage.googleapis.com/v1beta/{_gemini_model_name}:{endpoint}?key={gemini_api_key}"
             )
     elif mode == "embedding":
         endpoint = "embedContent"
-        url = "https://generativelanguage.googleapis.com/v1beta/{}:{}?key={}".format(
-            _gemini_model_name, endpoint, gemini_api_key
-        )
+        url = f"https://generativelanguage.googleapis.com/v1beta/{_gemini_model_name}:{endpoint}?key={gemini_api_key}"
     elif mode == "batch_embedding":
         endpoint = "batchEmbedContents"
-        url = "https://generativelanguage.googleapis.com/v1beta/{}:{}?key={}".format(
-            _gemini_model_name, endpoint, gemini_api_key
-        )
+        url = f"https://generativelanguage.googleapis.com/v1beta/{_gemini_model_name}:{endpoint}?key={gemini_api_key}"
     elif mode == "image_generation":
         raise ValueError(
             "LiteLLM's `gemini/` route does not support image generation yet. Let us know if you need this feature by opening an issue at https://github.com/BerriAI/litellm/issues"
@@ -156,7 +152,7 @@ def _get_gemini_url(
     return url, endpoint
 
 
-def _check_text_in_content(parts: List[PartType]) -> bool:
+def _check_text_in_content(parts: list[PartType]) -> bool:
     """
     check that user_content has 'text' parameter.
         - Known Vertex Error: Unable to submit request because it must have a text parameter.
@@ -212,7 +208,7 @@ def _build_vertex_schema(parameters: dict, add_property_ordering: bool = False):
     return parameters
 
 
-def _filter_anyof_fields(schema_dict: Dict[str, Any]) -> Dict[str, Any]:
+def _filter_anyof_fields(schema_dict: dict[str, Any]) -> dict[str, Any]:
     """
     When anyof is present, only keep the anyof field and its contents - otherwise VertexAI will throw an error - https://github.com/BerriAI/litellm/issues/11164
     Filter out other fields in the same dict.
@@ -261,8 +257,8 @@ def process_items(schema, depth=0):
 
 
 def set_schema_property_ordering(
-    schema: Dict[str, Any], depth: int = 0
-) -> Dict[str, Any]:
+    schema: dict[str, Any], depth: int = 0
+) -> dict[str, Any]:
     """
     vertex ai and generativeai apis order output of fields alphabetically, unless you specify the order.
     python dicts retain order, so we just use that. Note that this field only applies to structured outputs, and not tools.
@@ -290,8 +286,8 @@ def set_schema_property_ordering(
 
 
 def filter_schema_fields(
-    schema_dict: Dict[str, Any], valid_fields: Set[str], processed=None
-) -> Dict[str, Any]:
+    schema_dict: dict[str, Any], valid_fields: set[str], processed=None
+) -> dict[str, Any]:
     """
     Recursively filter a schema dictionary to keep only valid fields.
     """
@@ -419,7 +415,7 @@ def _convert_vertex_datetime_to_openai_datetime(vertex_datetime: str) -> int:
     return int(dt.timestamp())
 
 
-def get_vertex_project_id_from_url(url: str) -> Optional[str]:
+def get_vertex_project_id_from_url(url: str) -> str | None:
     """
     Get the vertex project id from the url
 
@@ -429,7 +425,7 @@ def get_vertex_project_id_from_url(url: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
-def get_vertex_location_from_url(url: str) -> Optional[str]:
+def get_vertex_location_from_url(url: str) -> str | None:
     """
     Get the vertex location from the url
 
@@ -457,8 +453,8 @@ def replace_project_and_location_in_route(
 def construct_target_url(
     base_url: str,
     requested_route: str,
-    vertex_location: Optional[str],
-    vertex_project: Optional[str],
+    vertex_location: str | None,
+    vertex_project: str | None,
 ) -> httpx.URL:
     """
     Allow user to specify their own project id / location.
@@ -488,9 +484,7 @@ def construct_target_url(
     if "cachedContent" in requested_route:
         vertex_version = "v1beta1"
 
-    base_requested_route = "{}/projects/{}/locations/{}".format(
-        vertex_version, vertex_project, vertex_location
-    )
+    base_requested_route = f"{vertex_version}/projects/{vertex_project}/locations/{vertex_location}"
 
     updated_requested_route = "/" + base_requested_route + requested_route
 
