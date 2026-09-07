@@ -738,6 +738,9 @@ def convert_to_anthropic_image_obj(
     try:
         if openai_image_url.startswith("http"):
             openai_image_url = convert_url_to_base64(url=openai_image_url)
+        elif openai_image_url.startswith("data:image/"):
+            # Already a data URL, no need to convert
+            pass
         # Extract the media type and base64 data
         media_type, base64_data = openai_image_url.split("data:")[1].split(";base64,")
 
