@@ -36,13 +36,15 @@ def is_valid_deployment_tag(
     return False
 
 
-async def get_deployments_for_tag(
+def filter_deployments_for_tag(
     llm_router_instance: LitellmRouter,
     model: str,  # used to raise the correct error
     healthy_deployments: Union[List[Any], Dict[Any, Any]],
     request_kwargs: Optional[Dict[Any, Any]] = None,
 ):
     """
+    Synchronous function to filter deployments based on tags.
+    
     Returns a list of deployments that match the requested model and tags in the request.
 
     Executes tag based filtering based on the tags in request metadata and the tags on the deployments
@@ -52,14 +54,14 @@ async def get_deployments_for_tag(
 
     if request_kwargs is None:
         verbose_logger.debug(
-            "get_deployments_for_tag: request_kwargs is None returning healthy_deployments: %s",
+            "filter_deployments_for_tag: request_kwargs is None returning healthy_deployments: %s",
             healthy_deployments,
         )
         return healthy_deployments
 
     if healthy_deployments is None:
         verbose_logger.debug(
-            "get_deployments_for_tag: healthy_deployments is None returning healthy_deployments"
+            "filter_deployments_for_tag: healthy_deployments is None returning healthy_deployments"
         )
         return healthy_deployments
 
@@ -72,7 +74,7 @@ async def get_deployments_for_tag(
         default_deployments = []
         if request_tags:
             verbose_logger.debug(
-                "get_deployments_for_tag routing: router_keys: %s", request_tags
+                "filter_deployments_for_tag routing: router_keys: %s", request_tags
             )
             # example this can be router_keys=["free", "custom"]
             # get all deployments that have a superset of these router keys
@@ -117,6 +119,26 @@ async def get_deployments_for_tag(
         healthy_deployments,
     )
     return healthy_deployments
+
+
+async def get_deployments_for_tag(
+    llm_router_instance: LitellmRouter,
+    model: str,  # used to raise the correct error
+    healthy_deployments: Union[List[Any], Dict[Any, Any]],
+    request_kwargs: Optional[Dict[Any, Any]] = None,
+):
+    """
+    Returns a list of deployments that match the requested model and tags in the request.
+
+    Executes tag based filtering based on the tags in request metadata and the tags on the deployments
+    """
+    # Use the sync filter function for tag filtering
+    return filter_deployments_for_tag(
+        llm_router_instance=llm_router_instance,
+        model=model,
+        healthy_deployments=healthy_deployments,
+        request_kwargs=request_kwargs,
+    )
 
 
 def _get_tags_from_request_kwargs(
