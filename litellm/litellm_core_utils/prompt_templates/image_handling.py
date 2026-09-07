@@ -14,6 +14,12 @@ MAX_IMGS_IN_MEMORY = 10
 
 in_memory_cache = InMemoryCache(max_size_in_memory=MAX_IMGS_IN_MEMORY)
 
+# Headers to use when fetching images from remote servers
+# Some servers (e.g., Wikimedia) reject requests without a User-Agent header
+IMAGE_FETCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
 
 def _process_image_response(response: Response, url: str) -> str:
     if response.status_code != 200:
@@ -55,7 +61,7 @@ async def async_convert_url_to_base64(url: str) -> str:
     client = litellm.module_level_aclient
     for _ in range(3):
         try:
-            response = await client.get(url, follow_redirects=True)
+            response = await client.get(url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS)
             return _process_image_response(response, url)
         except Exception:
             pass
@@ -72,7 +78,7 @@ def convert_url_to_base64(url: str) -> str:
     client = litellm.module_level_client
     for _ in range(3):
         try:
-            response = client.get(url, follow_redirects=True)
+            response = client.get(url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS)
             return _process_image_response(response, url)
         except Exception as e:
             verbose_logger.exception(e)

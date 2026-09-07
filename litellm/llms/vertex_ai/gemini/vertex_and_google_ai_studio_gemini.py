@@ -1438,7 +1438,8 @@ async def make_call(
 
     try:
         response = await client.post(api_base, headers=headers, data=data, stream=True)
-        response.raise_for_status()
+        if not isinstance(response, dict):
+            response.raise_for_status()
     except httpx.HTTPStatusError as e:
         exception_string = str(await e.response.aread())
         raise VertexAIError(
@@ -1685,7 +1686,8 @@ class VertexLLM(VertexBase):
             response = await client.post(
                 api_base, headers=headers, json=cast(dict, request_body)
             )  # type: ignore
-            response.raise_for_status()
+            if not isinstance(response, dict):
+                response.raise_for_status()
         except httpx.HTTPStatusError as err:
             error_code = err.response.status_code
             raise VertexAIError(
@@ -1887,7 +1889,8 @@ class VertexLLM(VertexBase):
 
         try:
             response = client.post(url=url, headers=headers, json=data)  # type: ignore
-            response.raise_for_status()
+            if not isinstance(response, dict):
+                response.raise_for_status()
         except httpx.HTTPStatusError as err:
             error_code = err.response.status_code
             raise VertexAIError(
