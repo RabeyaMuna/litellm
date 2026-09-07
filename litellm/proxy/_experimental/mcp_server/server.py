@@ -283,6 +283,14 @@ if MCP_AVAILABLE:
             user_api_key_auth
         )
 
+
+        def _get_server_aliases(server_id: str) -> list[str | None]:
+            """Helper to get server aliases with proper null handling."""
+            server = global_mcp_server_manager.get_mcp_server_by_id(server_id)
+            if server is None:
+                return [server_id]
+            return [server.alias, server.server_name, server_id]
+
         # Filter servers based on mcp_servers parameter if provided
         if mcp_servers is not None:
             # Convert to lowercase for case-insensitive comparison
@@ -292,11 +300,7 @@ if MCP_AVAILABLE:
                 for server_id in allowed_mcp_servers
                 if any(
                     server_alias.lower() in mcp_servers_lower
-                    for server_alias in [
-                        global_mcp_server_manager.get_mcp_server_by_id(server_id).alias,
-                        global_mcp_server_manager.get_mcp_server_by_id(server_id).server_name,
-                        server_id,
-                    ]
+                    for server_alias in _get_server_aliases(server_id)
                     if server_alias is not None
                 )
             ]
