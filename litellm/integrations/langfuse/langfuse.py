@@ -37,6 +37,12 @@ else:
     Langfuse = Any
 
 
+# Maximum number of Langfuse clients that can be initialized
+MAX_LANGFUSE_INITIALIZED_CLIENTS = int(
+    os.getenv("MAX_LANGFUSE_INITIALIZED_CLIENTS", 50)
+)
+
+
 class LangFuseLogger:
     # Class variables or attributes
     def __init__(
