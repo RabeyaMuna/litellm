@@ -1,7 +1,7 @@
 from typing import Any, Dict, Iterable, List, Optional, Union
 
 from pydantic import BaseModel, validator
-from typing_extensions import Literal, Required, TypedDict
+from typing import Literal, Required, TypedDict
 
 from .openai import ChatCompletionCachedContent, ChatCompletionThinkingBlock
 
