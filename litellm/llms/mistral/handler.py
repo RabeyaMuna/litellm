@@ -38,7 +38,7 @@ def completion(
     provider_config = MistralConfig()
     
     # Get the API base and key from the config
-    api_base, api_key = provider_config._get_openai_compatible_provider_info(
+    api_base, api_key = provider_config._get_openai_compatible_provider_info(  # type: ignore[assignment]
         api_base=api_base, api_key=api_key
     )
     
