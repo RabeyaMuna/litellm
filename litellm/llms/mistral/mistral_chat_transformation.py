@@ -6,7 +6,8 @@ Why separate file? Make it easy to see how transformation works
 Docs - https://docs.mistral.ai/api/
 """
 
-from typing import Any, Coroutine, List, Literal, Optional, Tuple, Union, overload, cast
+from collections.abc import Coroutine
+from typing import Any, Literal, cast, overload
 
 from litellm.litellm_core_utils.prompt_templates.common_utils import (
     handle_messages_with_content_list_to_str_conversion,
@@ -43,27 +44,27 @@ class MistralConfig(OpenAIGPTConfig):
     - `response_format` (object or null): An object specifying the format that the model must output. Setting to { "type": "json_object" } enables JSON mode, which guarantees the message the model generates is in JSON. When using JSON mode you MUST also instruct the model to produce JSON yourself with a system or a user message.
     """
 
-    temperature: Optional[int] = None
-    top_p: Optional[int] = None
-    max_tokens: Optional[int] = None
-    tools: Optional[list] = None
-    tool_choice: Optional[Literal["auto", "any", "none"]] = None
-    random_seed: Optional[int] = None
-    safe_prompt: Optional[bool] = None
-    response_format: Optional[dict] = None
-    stop: Optional[Union[str, list]] = None
+    temperature: int | None = None
+    top_p: int | None = None
+    max_tokens: int | None = None
+    tools: list | None = None
+    tool_choice: Literal["auto", "any", "none"] | None = None
+    random_seed: int | None = None
+    safe_prompt: bool | None = None
+    response_format: dict | None = None
+    stop: str | list | None = None
 
     def __init__(
         self,
-        temperature: Optional[int] = None,
-        top_p: Optional[int] = None,
-        max_tokens: Optional[int] = None,
-        tools: Optional[list] = None,
-        tool_choice: Optional[Literal["auto", "any", "none"]] = None,
-        random_seed: Optional[int] = None,
-        safe_prompt: Optional[bool] = None,
-        response_format: Optional[dict] = None,
-        stop: Optional[Union[str, list]] = None,
+        temperature: int | None = None,
+        top_p: int | None = None,
+        max_tokens: int | None = None,
+        tools: list | None = None,
+        tool_choice: Literal["auto", "any", "none"] | None = None,
+        random_seed: int | None = None,
+        safe_prompt: bool | None = None,
+        response_format: dict | None = None,
+        stop: str | list | None = None,
     ) -> None:
         locals_ = locals().copy()
         for key, value in locals_.items():
@@ -74,7 +75,7 @@ class MistralConfig(OpenAIGPTConfig):
     def get_config(cls):
         return super().get_config()
 
-    def get_supported_openai_params(self, model: str) -> List[str]:
+    def get_supported_openai_params(self, model: str) -> list[str]:
         supported_params = [
             "stream",
             "temperature",
@@ -87,11 +88,11 @@ class MistralConfig(OpenAIGPTConfig):
             "stop",
             "response_format",
         ]
-        
+
         # Add reasoning support for magistral models
         if "magistral" in model.lower():
             supported_params.extend(["thinking", "reasoning_effort"])
-            
+
         return supported_params
 
     def _map_tool_choice(self, tool_choice: str) -> str:
@@ -126,9 +127,7 @@ Then provide a clear, concise answer based on your reasoning."""
         for param, value in non_default_params.items():
             if param == "max_tokens":
                 optional_params["max_tokens"] = value
-            if (
-                param == "max_completion_tokens"
-            ):  # max_completion_tokens should take priority
+            if param == "max_completion_tokens":  # max_completion_tokens should take priority
                 optional_params["max_tokens"] = value
             if param == "tools":
                 optional_params["tools"] = value
@@ -141,9 +140,7 @@ Then provide a clear, concise answer based on your reasoning."""
             if param == "stop":
                 optional_params["stop"] = value
             if param == "tool_choice" and isinstance(value, str):
-                optional_params["tool_choice"] = self._map_tool_choice(
-                    tool_choice=value
-                )
+                optional_params["tool_choice"] = self._map_tool_choice(tool_choice=value)
             if param == "seed":
                 optional_params["extra_body"] = {"random_seed": value}
             if param == "response_format":
@@ -157,8 +154,8 @@ Then provide a clear, concise answer based on your reasoning."""
         return optional_params
 
     def _get_openai_compatible_provider_info(
-        self, api_base: Optional[str], api_key: Optional[str]
-    ) -> Tuple[Optional[str], Optional[str]]:
+        self, api_base: str | None, api_key: str | None
+    ) -> tuple[str | None, str | None]:
         # mistral is openai compatible, we just need to set this to custom_openai and have the api_base be https://api.mistral.ai
         api_base = (
             api_base
@@ -167,9 +164,7 @@ Then provide a clear, concise answer based on your reasoning."""
         )  # type: ignore
 
         # if api_base does not end with /v1 we add it
-        if api_base is not None and not api_base.endswith(
-            "/v1"
-        ):  # Mistral always needs a /v1 at the end
+        if api_base is not None and not api_base.endswith("/v1"):  # Mistral always needs a /v1 at the end
             api_base = api_base + "/v1"
         dynamic_api_key = (
             api_key
@@ -180,22 +175,20 @@ Then provide a clear, concise answer based on your reasoning."""
 
     @overload
     def _transform_messages(
-        self, messages: List[AllMessageValues], model: str, is_async: Literal[True]
-    ) -> Coroutine[Any, Any, List[AllMessageValues]]:
-        ...
+        self, messages: list[AllMessageValues], model: str, is_async: Literal[True]
+    ) -> Coroutine[Any, Any, list[AllMessageValues]]: ...
 
     @overload
     def _transform_messages(
         self,
-        messages: List[AllMessageValues],
+        messages: list[AllMessageValues],
         model: str,
         is_async: Literal[False] = False,
-    ) -> List[AllMessageValues]:
-        ...
+    ) -> list[AllMessageValues]: ...
 
     def _transform_messages(
-        self, messages: List[AllMessageValues], model: str, is_async: bool = False
-    ) -> Union[List[AllMessageValues], Coroutine[Any, Any, List[AllMessageValues]]]:
+        self, messages: list[AllMessageValues], model: str, is_async: bool = False
+    ) -> list[AllMessageValues] | Coroutine[Any, Any, list[AllMessageValues]]:
         """
         - handles scenario where content is list and not string
         - content list is just text, and no images
@@ -219,7 +212,7 @@ Then provide a clear, concise answer based on your reasoning."""
         messages = handle_messages_with_content_list_to_str_conversion(messages)
 
         ## 3. Handle name in message
-        new_messages: List[AllMessageValues] = []
+        new_messages: list[AllMessageValues] = []
         for m in messages:
             m = MistralConfig._handle_name_in_message(m)
             m = MistralConfig._handle_tool_call_message(m)
@@ -232,52 +225,45 @@ Then provide a clear, concise answer based on your reasoning."""
             return super()._transform_messages(new_messages, model, False)
 
     def _add_reasoning_system_prompt_if_needed(
-        self, 
-        messages: List[AllMessageValues], 
-        optional_params: dict
-    ) -> List[AllMessageValues]:
+        self, messages: list[AllMessageValues], optional_params: dict
+    ) -> list[AllMessageValues]:
         """
         Add reasoning system prompt for Mistral magistral models when reasoning_effort is specified.
         """
         if not optional_params.get("_add_reasoning_prompt", False):
             return messages
-        
+
         # Check if there's already a system message
         has_system_message = any(msg.get("role") == "system" for msg in messages)
-        
+
         if has_system_message:
             # Prepend reasoning instructions to existing system message
             for i, msg in enumerate(messages):
                 if msg.get("role") == "system":
-                    existing_content = msg.get("content", "")
+                    existing_content: Any = msg.get("content", "")
                     reasoning_prompt = self._get_mistral_reasoning_system_prompt()
-                    
+
                     # Handle both string and list content
+                    new_content: str | list[Any]
                     if isinstance(existing_content, str):
                         # String content - prepend reasoning prompt
                         new_content = f"{reasoning_prompt}\n\n{existing_content}"
                     elif isinstance(existing_content, list):
                         # List content - prepend reasoning prompt as text block
-                        new_content = [
-                            {"type": "text", "text": reasoning_prompt + "\n\n"}
-                        ] + existing_content
+                        new_content = [{"type": "text", "text": reasoning_prompt + "\n\n"}] + existing_content
                     else:
                         # Fallback for any other type - convert to string
-                        new_content = f"{reasoning_prompt}\n\n{str(existing_content)}"
-                    
-                    messages[i] = cast(AllMessageValues, {
-                        **msg,
-                        "content": new_content
-                    })
+                        new_content = f"{reasoning_prompt}\n\n{existing_content!s}"
+
+                    messages[i] = cast(AllMessageValues, {**msg, "content": new_content})
                     break
         else:
             # Add new system message with reasoning instructions
-            reasoning_message: AllMessageValues = cast(AllMessageValues, {
-                "role": "system",
-                "content": self._get_mistral_reasoning_system_prompt()
-            })
+            reasoning_message: AllMessageValues = cast(
+                AllMessageValues, {"role": "system", "content": self._get_mistral_reasoning_system_prompt()}
+            )
             messages = [reasoning_message] + messages
-        
+
         # Remove the internal flag
         optional_params.pop("_add_reasoning_prompt", None)
         return messages
@@ -302,7 +288,7 @@ Then provide a clear, concise answer based on your reasoning."""
         Mistral API only supports tool_calls in Messages in `MistralToolCallMessage` spec
         """
         _tool_calls = message.get("tool_calls")
-        mistral_tool_calls: List[MistralToolCallMessage] = []
+        mistral_tool_calls: list[MistralToolCallMessage] = []
         if _tool_calls is not None and isinstance(_tool_calls, list):
             for _tool in _tool_calls:
                 _tool_call_message = MistralToolCallMessage(
@@ -317,7 +303,7 @@ Then provide a clear, concise answer based on your reasoning."""
     def transform_request(
         self,
         model: str,
-        messages: List[AllMessageValues],
+        messages: list[AllMessageValues],
         optional_params: dict,
         litellm_params: dict,
         headers: dict,
@@ -332,7 +318,7 @@ Then provide a clear, concise answer based on your reasoning."""
         # Add reasoning system prompt if needed (for magistral models)
         if "magistral" in model.lower() and optional_params.get("_add_reasoning_prompt", False):
             messages = self._add_reasoning_system_prompt_if_needed(messages, optional_params)
-        
+
         # Call parent transform_request which handles _transform_messages
         return super().transform_request(
             model=model,
