@@ -4,8 +4,7 @@ Ollama /chat/completion calls handled in llm_http_handler.py
 [TODO]: migrate embeddings to a base handler as well.
 """
 
-import asyncio
-from typing import Any, Dict, List
+from typing import Any
 
 import litellm
 from litellm.types.utils import EmbeddingResponse
@@ -17,7 +16,7 @@ from litellm.types.utils import EmbeddingResponse
 async def ollama_aembeddings(
     api_base: str,
     model: str,
-    prompts: List[str],
+    prompts: list[str],
     model_response: EmbeddingResponse,
     optional_params: dict,
     logging_obj: Any,
@@ -36,7 +35,7 @@ async def ollama_aembeddings(
         ):  # completion(top_k=3) > cohere_config(top_k=3) <- allows for dynamic variables to be passed in
             optional_params[k] = v
 
-    data: Dict[str, Any] = {"model": model, "input": prompts}
+    data: dict[str, Any] = {"model": model, "input": prompts}
     special_optional_params = ["truncate", "options", "keep_alive"]
 
     for k, v in optional_params.items():
@@ -54,7 +53,7 @@ async def ollama_aembeddings(
 
     response_json = response.json()
 
-    embeddings: List[List[float]] = response_json["embeddings"]
+    embeddings: list[list[float]] = response_json["embeddings"]
     for idx, emb in enumerate(embeddings):
         output_data.append({"object": "embedding", "index": idx, "embedding": emb})
 
@@ -66,17 +65,7 @@ async def ollama_aembeddings(
     model_response.object = "list"
     model_response.data = output_data
     model_response.model = "ollama/" + model
-    setattr(
-        model_response,
-        "usage",
-        litellm.Usage(
-            prompt_tokens=total_input_tokens,
-            completion_tokens=total_input_tokens,
-            total_tokens=total_input_tokens,
-            prompt_tokens_details=None,
-            completion_tokens_details=None,
-        ),
-    )
+    model_response.usage = litellm.Usage(prompt_tokens=total_input_tokens, completion_tokens=total_input_tokens, total_tokens=total_input_tokens, prompt_tokens_details=None, completion_tokens_details=None)
     return model_response
 
 
@@ -102,7 +91,7 @@ def ollama_embeddings(
         ):  # completion(top_k=3) > cohere_config(top_k=3) <- allows for dynamic variables to be passed in
             optional_params[k] = v
 
-    data: Dict[str, Any] = {"model": model, "input": prompts}
+    data: dict[str, Any] = {"model": model, "input": prompts}
     special_optional_params = ["truncate", "options", "keep_alive"]
 
     for k, v in optional_params.items():
@@ -120,7 +109,7 @@ def ollama_embeddings(
 
     response_json = response.json()
 
-    embeddings: List[List[float]] = response_json["embeddings"]
+    embeddings: list[list[float]] = response_json["embeddings"]
     for idx, emb in enumerate(embeddings):
         output_data.append({"object": "embedding", "index": idx, "embedding": emb})
 
@@ -132,15 +121,5 @@ def ollama_embeddings(
     model_response.object = "list"
     model_response.data = output_data
     model_response.model = "ollama/" + model
-    setattr(
-        model_response,
-        "usage",
-        litellm.Usage(
-            prompt_tokens=total_input_tokens,
-            completion_tokens=total_input_tokens,
-            total_tokens=total_input_tokens,
-            prompt_tokens_details=None,
-            completion_tokens_details=None,
-        ),
-    )
+    model_response.usage = litellm.Usage(prompt_tokens=total_input_tokens, completion_tokens=total_input_tokens, total_tokens=total_input_tokens, prompt_tokens_details=None, completion_tokens_details=None)
     return model_response
