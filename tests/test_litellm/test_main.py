@@ -5,7 +5,6 @@ import sys
 import httpx
 import pytest
 import respx
-from fastapi.testclient import TestClient
 
 sys.path.insert(
     0, os.path.abspath("../..")
@@ -160,7 +159,7 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
                             "format": "image/png",
                         },
                     },
@@ -176,7 +175,7 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
             else:
                 response = await acompletion(**args, client=client)
             print(response)
-        except Exception as e:
+        except Exception:
             pass
 
         mock_client.assert_called()
@@ -218,7 +217,7 @@ async def test_url_with_format_param_openai(model, sync_mode):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
                             "format": "image/png",
                         },
                     },
@@ -269,7 +268,6 @@ def test_bedrock_latency_optimized_inference():
 
 
 def test_custom_provider_with_extra_headers():
-    from litellm.llms.custom_httpx.http_handler import HTTPHandler
 
     with patch.object(
         litellm.llms.custom_httpx.http_handler.HTTPHandler, "post"
@@ -286,7 +284,6 @@ def test_custom_provider_with_extra_headers():
 
 
 def test_custom_provider_with_extra_body():
-    from litellm.llms.custom_httpx.http_handler import HTTPHandler
 
     with patch.object(
         litellm.llms.custom_httpx.http_handler.HTTPHandler, "post"
