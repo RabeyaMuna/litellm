@@ -48,6 +48,10 @@ def _process_image_response(response: Response, url: str) -> str:
 
 
 async def async_convert_url_to_base64(url: str) -> str:
+    # Handle inline data URLs directly without fetching
+    if url.startswith("data:"):
+        return url
+
     cached_result = in_memory_cache.get_cache(url)
     if cached_result:
         return cached_result
@@ -65,6 +69,10 @@ async def async_convert_url_to_base64(url: str) -> str:
 
 
 def convert_url_to_base64(url: str) -> str:
+    # Handle inline data URLs directly without fetching
+    if url.startswith("data:"):
+        return url
+
     cached_result = in_memory_cache.get_cache(url)
     if cached_result:
         return cached_result
