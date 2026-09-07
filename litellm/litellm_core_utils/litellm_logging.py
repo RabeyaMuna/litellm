@@ -1416,9 +1416,13 @@ class Logging(LiteLLMLoggingBaseClass):
     def success_handler(  # noqa: PLR0915
         self, result=None, start_time=None, end_time=None, cache_hit=None, **kwargs
     ):
-        verbose_logger.debug(
-            f"Logging Details LiteLLM-Success Call: Cache_hit={cache_hit}"
-        )
+        try:
+            verbose_logger.debug(
+                f"Logging Details LiteLLM-Success Call: Cache_hit={cache_hit}"
+            )
+        except ValueError:
+            # Handle case where logging stream is closed (e.g., during pytest teardown)
+            pass
         if not self.should_run_logging(
             event_type="sync_success"
         ):  # prevent double logging

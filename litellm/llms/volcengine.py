@@ -80,9 +80,4 @@ class VolcEngineConfig(OpenAILikeChatConfig):
             replace_max_completion_tokens_with_max_tokens,
         )
 
-        if "thinking" in optional_params:
-            optional_params.setdefault("extra_body", {})["thinking"] = (
-                optional_params.pop("thinking")
-            )
-
         return optional_params
