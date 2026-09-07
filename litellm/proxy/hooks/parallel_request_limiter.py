@@ -69,10 +69,19 @@ class _PROXY_MaxParallelRequestsHandler(CustomLogger):
             f"Current Usage of {rate_limit_type} in this minute: {current}"
         )
         if current is None:
+            # When current is None, treat it as 0 for comparison purposes
+            # Check if adding a new request would exceed any of the limits
             if max_parallel_requests == 0 or tpm_limit == 0 or rpm_limit == 0:
                 # base case
                 raise self.raise_rate_limit_error(
                     additional_details=f"{CommonProxyErrors.max_parallel_request_limit_reached.value}. Hit limit for {rate_limit_type}. Current limits: max_parallel_requests: {max_parallel_requests}, tpm_limit: {tpm_limit}, rpm_limit: {rpm_limit}"
+                )
+            # Check if adding this request would exceed rpm_limit (treating None as 0)
+            # If rpm_limit is 1, then 1 request is allowed (0 + 1 = 1, which equals the limit)
+            # But if rpm_limit is 0, no requests are allowed
+            if rpm_limit < 1:
+                raise self.raise_rate_limit_error(
+                    additional_details=f"{CommonProxyErrors.max_parallel_request_limit_reached.value}. Hit limit for {rate_limit_type}. Current rpm: 0, rpm limit: {rpm_limit}"
                 )
             new_val = {
                 "current_requests": 1,
