@@ -162,6 +162,9 @@ class OnyxGuardrail(CustomGuardrail):
 
         conversation_id = self._handle_conversation_id(data)
 
+        # Type annotation to handle multiple response types
+        payload: dict[str, Any] | LLMResponseTypes
+
         try:
             # Convert response to dict format for validation
             if isinstance(response, dict):
