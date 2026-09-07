@@ -30,6 +30,34 @@ from enum import Enum
 telemetry = None
 
 
+def run_separate_health_app():
+    """Run a separate health app if SEPARATE_HEALTH_APP environment variable is set to '1'."""
+    import threading
+    import uvicorn
+    
+    separate_health_app = os.getenv("SEPARATE_HEALTH_APP", "0")
+    if separate_health_app != "1":
+        return
+    
+    from litellm.proxy.health_endpoints.health_app_factory import build_health_app
+    
+    health_app = build_health_app()
+    
+    print("LiteLLM Health Endpoints running on port 4001")  # noqa
+    
+    # Run the health app in a separate thread
+    config = uvicorn.Config(
+        health_app,
+        host="0.0.0.0",
+        port=4001,
+        log_level="info"
+    )
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+
+
+
 class LiteLLMDatabaseConnectionPool(Enum):
     database_connection_pool_limit = 10
     database_connection_pool_timeout = 60
