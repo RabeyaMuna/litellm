@@ -164,6 +164,7 @@ class OnyxGuardrail(CustomGuardrail):
 
         try:
             # Convert response to dict format for validation
+            payload: Any = response
             if isinstance(response, dict):
                 # TypedDict or plain dict
                 payload = response
