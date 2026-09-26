@@ -815,8 +815,7 @@ class MCPServerManager:
         resource_metadata_url = params.get("resource_metadata")
 
         scope_value = params.get("scope")
-        scopes = [s for s in (scope_value.split() if scope_value else []) if s]
-        scopes = scopes or None
+        scopes = [s for s in (scope_value.split() if scope_value else []) if s] or None
 
         return resource_metadata_url, scopes
 
