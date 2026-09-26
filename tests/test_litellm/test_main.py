@@ -145,11 +145,45 @@ def test_completion_missing_role(openai_api_response):
 async def test_url_with_format_param(model, sync_mode, monkeypatch):
     from litellm import acompletion, completion
     from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
+    from litellm.litellm_core_utils.prompt_templates.factory import BedrockImageProcessor
+    from litellm.litellm_core_utils.prompt_templates import image_handling
 
     if sync_mode:
         client = HTTPHandler()
     else:
         client = AsyncHTTPHandler()
+
+    # Mock image URL fetching to avoid actual HTTP requests
+    fake_base64_data = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwA"
+    fake_data_url = "data:image/jpeg;base64," + fake_base64_data
+
+    # Mock for Anthropic/Gemini paths (convert_url_to_base64)
+    # convert_url_to_base64 is imported in factory.py, so we patch it there
+    from litellm.litellm_core_utils.prompt_templates import factory as prompt_factory
+    monkeypatch.setattr(
+        prompt_factory, "convert_url_to_base64", lambda url: fake_data_url
+    )
+    # Also patch in image_handling for any direct imports
+    monkeypatch.setattr(
+        image_handling, "convert_url_to_base64", lambda url: fake_data_url
+    )
+    monkeypatch.setattr(
+        image_handling, "async_convert_url_to_base64", lambda url: fake_data_url
+    )
+
+    # Mock for Bedrock paths
+    async def mock_get_image_details_async(image_url):
+        return (fake_base64_data, "image/jpeg")
+
+    def mock_get_image_details(image_url):
+        return (fake_base64_data, "image/jpeg")
+
+    monkeypatch.setattr(
+        BedrockImageProcessor, "get_image_details", mock_get_image_details
+    )
+    monkeypatch.setattr(
+        BedrockImageProcessor, "get_image_details_async", mock_get_image_details_async
+    )
 
     args = {
         "model": model,
