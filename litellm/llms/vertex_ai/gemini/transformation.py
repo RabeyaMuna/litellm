@@ -331,6 +331,17 @@ def _transform_request_body(
             )
             messages.append({"role": "user", "content": user_response_schema_message})
             optional_params.pop("response_schema")
+    # Convert Pydantic model response_format to Gemini response_schema
+    if "response_format" in optional_params:
+        _response_format = optional_params.pop("response_format")
+        if isinstance(_response_format, type) and issubclass(_response_format, BaseModel):
+            _schema = _response_format.model_json_schema()
+            optional_params["response_mime_type"] = "application/json"
+            optional_params["response_schema"] = _schema
+        elif isinstance(_response_format, BaseModel):
+            _schema = _response_format.__class__.model_json_schema()
+            optional_params["response_mime_type"] = "application/json"
+            optional_params["response_schema"] = _schema
 
     # Check for any 'litellm_param_*' set during optional param mapping
 
