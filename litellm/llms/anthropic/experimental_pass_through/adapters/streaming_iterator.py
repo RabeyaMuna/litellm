@@ -39,6 +39,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
     sent_last_message: bool = False
     holding_chunk: Optional[Any] = None
     holding_stop_reason_chunk: Optional[Any] = None
+    pending_new_content_block: bool = False
     current_content_block_index: int = 0
     current_content_block_start: ContentBlockContentBlockDict = TextBlock(
         type="text",
