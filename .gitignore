@@ -93,4 +93,8 @@ test.py
 
 litellm_config.yaml
 .cursor
-.vscode/launch.json
+.vscode/launch.json# Shell redirection artifacts
+=[0-9]*
+>[0-9]*
+*.tmp
+*.log
