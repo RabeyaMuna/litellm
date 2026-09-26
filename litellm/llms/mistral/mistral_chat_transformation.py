@@ -252,6 +252,7 @@ Then provide a clear, concise answer based on your reasoning."""
                     existing_content = msg.get("content", "")
                     reasoning_prompt = self._get_mistral_reasoning_system_prompt()
                     
+                    new_content: Union[str, List[dict[str, str]]]
                     # Handle both string and list content
                     if isinstance(existing_content, str):
                         # String content - prepend reasoning prompt
