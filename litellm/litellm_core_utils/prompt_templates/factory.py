@@ -4,7 +4,8 @@ import re
 import uuid
 import xml.etree.ElementTree as ET
 from enum import Enum
-from typing import Any, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, List, Optional, Tuple, Union, cast, overload
+from typing_extensions import Literal
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
@@ -3008,7 +3009,7 @@ def get_assistant_message_block_or_continue_message(
 class BedrockConverseMessagesProcessor:
     @staticmethod
     def _maybe_add_cache_point(
-        content_list: List[BedrockContentBlock], 
+        content_list: List[BedrockContentBlock],
         message_block: Union[
             OpenAIMessageContentListBlock,
             ChatCompletionUserMessage,
@@ -3016,8 +3017,8 @@ class BedrockConverseMessagesProcessor:
             ChatCompletionAssistantMessage,
             ChatCompletionToolMessage,
             ChatCompletionThinkingBlock,
-        ], 
-        block_type: Literal["system", "content_block"] = "content_block"
+        ],
+        block_type: Literal["system", "content_block"] = "content_block",
     ) -> None:
         """Helper to add cache point if present in message block"""
         _cache_point_block = (
@@ -3027,7 +3028,7 @@ class BedrockConverseMessagesProcessor:
             )
         )
         if _cache_point_block is not None:
-            content_list.append(_cache_point_block)
+            content_list.append(cast(BedrockContentBlock, _cache_point_block))
 
     @staticmethod
     def _initial_message_setup(
