@@ -48,6 +48,20 @@ def append_query_params(url, params) -> str:
     return modified_url  # type: ignore
 
 
+def run_separate_health_app():
+    """Start the separate health app when enabled via env var."""
+    if os.getenv("SEPARATE_HEALTH_APP") != "1":
+        return
+
+    import threading
+
+    from litellm.proxy.health_app_factory import build_health_app
+
+    print("LiteLLM Health Endpoints: Starting separate health app")
+    thread = threading.Thread(target=build_health_app, daemon=True)
+    thread.start()
+
+
 class ProxyInitializationHelpers:
     @staticmethod
     def _echo_litellm_version():
