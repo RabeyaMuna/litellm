@@ -462,94 +462,113 @@ class VertexGeminiConfig(VertexAIBaseConfig, BaseConfig):
         drop_params: bool,
     ) -> Dict:
         for param, value in non_default_params.items():
-            if param == "temperature":
-                optional_params["temperature"] = value
-            elif param == "top_p":
-                optional_params["top_p"] = value
-            elif (
-                param == "stream" and value is True
-            ):  # sending stream = False, can cause it to get passed unchecked and raise issues
-                optional_params["stream"] = value
-            elif param == "n":
-                optional_params["candidate_count"] = value
-            elif param == "stop":
-                if isinstance(value, str):
-                    optional_params["stop_sequences"] = [value]
-                elif isinstance(value, list):
-                    optional_params["stop_sequences"] = value
-            elif param == "max_tokens" or param == "max_completion_tokens":
-                optional_params["max_output_tokens"] = value
-            elif param == "response_format" and isinstance(value, dict):  # type: ignore
-                self.apply_response_schema_transformation(
-                    value=value, optional_params=optional_params
-                )
-            elif param == "frequency_penalty":
-                optional_params["frequency_penalty"] = value
-            elif param == "presence_penalty":
-                optional_params["presence_penalty"] = value
-            elif param == "logprobs":
-                optional_params["responseLogprobs"] = value
-            elif param == "top_logprobs":
-                optional_params["logprobs"] = value
-            elif (
-                (param == "tools" or param == "functions")
-                and isinstance(value, list)
-                and value
-            ):
-                optional_params = self._add_tools_to_optional_params(
-                    optional_params, self._map_function(value=value)
-                )
-            elif param == "tool_choice" and (
-                isinstance(value, str) or isinstance(value, dict)
-            ):
-                _tool_choice_value = self.map_tool_choice_values(
-                    model=model, tool_choice=value  # type: ignore
-                )
-                if _tool_choice_value is not None:
-                    optional_params["tool_choice"] = _tool_choice_value
-            elif param == "parallel_tool_calls":
-                if value is False and not (
-                    drop_params or litellm.drop_params
-                ):  # if drop params is True, then we should just ignore this
-                    tools = non_default_params.get(
-                        "tools", non_default_params.get("functions")
-                    )
-                    num_function_declarations = (
-                        len(tools) if isinstance(tools, list) else 0
-                    )
-                    if num_function_declarations > 1:
-                        raise litellm.utils.UnsupportedParamsError(
-                            message=(
-                                "`parallel_tool_calls=False` is not supported when multiple tools are "
-                                "provided for Gemini. Specify a single tool, or set "
-                                "`parallel_tool_calls=True`. If you want to drop this param, set `litellm.drop_params = True` or pass in `(.., drop_params=True)` in the requst - https://docs.litellm.ai/docs/completion/drop_params"
-                            ),
-                            status_code=400,
-                        )
-                else:
-                    optional_params["parallel_tool_calls"] = value
-            elif param == "seed":
-                optional_params["seed"] = value
-            elif param == "reasoning_effort" and isinstance(value, str):
-                optional_params[
-                    "thinkingConfig"
-                ] = VertexGeminiConfig._map_reasoning_effort_to_thinking_budget(value)
-            elif param == "thinking":
-                optional_params[
-                    "thinkingConfig"
-                ] = VertexGeminiConfig._map_thinking_param(
-                    cast(AnthropicThinkingParam, value)
-                )
-            elif param == "modalities" and isinstance(value, list):
-                response_modalities = self.map_response_modalities(value)
-                optional_params["responseModalities"] = response_modalities
-            elif param == "web_search_options" and value and isinstance(value, dict):
-                _tools = self._map_web_search_options(value)
-                optional_params = self._add_tools_to_optional_params(
-                    optional_params, [_tools]
-                )
+            optional_params = self._map_openai_param(
+                param=param,
+                value=value,
+                non_default_params=non_default_params,
+                optional_params=optional_params,
+                model=model,
+                drop_params=drop_params,
+            )
         if litellm.vertex_ai_safety_settings is not None:
             optional_params["safety_settings"] = litellm.vertex_ai_safety_settings
+        return optional_params
+
+    def _map_openai_param(
+        self,
+        param: str,
+        value: Any,
+        non_default_params: Dict,
+        optional_params: Dict,
+        model: str,
+        drop_params: bool,
+    ) -> Dict:
+        if param == "temperature":
+            optional_params["temperature"] = value
+        elif param == "top_p":
+            optional_params["top_p"] = value
+        elif (
+            param == "stream" and value is True
+        ):  # sending stream = False, can cause it to get passed unchecked and raise issues
+            optional_params["stream"] = value
+        elif param == "n":
+            optional_params["candidate_count"] = value
+        elif param == "stop":
+            if isinstance(value, str):
+                optional_params["stop_sequences"] = [value]
+            elif isinstance(value, list):
+                optional_params["stop_sequences"] = value
+        elif param == "max_tokens" or param == "max_completion_tokens":
+            optional_params["max_output_tokens"] = value
+        elif param == "response_format" and isinstance(value, dict):  # type: ignore
+            self.apply_response_schema_transformation(
+                value=value, optional_params=optional_params
+            )
+        elif param == "frequency_penalty":
+            optional_params["frequency_penalty"] = value
+        elif param == "presence_penalty":
+            optional_params["presence_penalty"] = value
+        elif param == "logprobs":
+            optional_params["responseLogprobs"] = value
+        elif param == "top_logprobs":
+            optional_params["logprobs"] = value
+        elif (
+            (param == "tools" or param == "functions")
+            and isinstance(value, list)
+            and value
+        ):
+            optional_params = self._add_tools_to_optional_params(
+                optional_params, self._map_function(value=value)
+            )
+        elif param == "tool_choice" and (
+            isinstance(value, str) or isinstance(value, dict)
+        ):
+            _tool_choice_value = self.map_tool_choice_values(
+                model=model, tool_choice=value  # type: ignore
+            )
+            if _tool_choice_value is not None:
+                optional_params["tool_choice"] = _tool_choice_value
+        elif param == "parallel_tool_calls":
+            if value is False and not (
+                drop_params or litellm.drop_params
+            ):  # if drop params is True, then we should just ignore this
+                tools = non_default_params.get(
+                    "tools", non_default_params.get("functions")
+                )
+                num_function_declarations = (
+                    len(tools) if isinstance(tools, list) else 0
+                )
+                if num_function_declarations > 1:
+                    raise litellm.utils.UnsupportedParamsError(
+                        message=(
+                            "`parallel_tool_calls=False` is not supported when multiple tools are "
+                            "provided for Gemini. Specify a single tool, or set "
+                            "`parallel_tool_calls=True`. If you want to drop this param, set `litellm.drop_params = True` or pass in `(.., drop_params=True)` in the requst - https://docs.litellm.ai/docs/completion/drop_params"
+                        ),
+                        status_code=400,
+                    )
+            else:
+                optional_params["parallel_tool_calls"] = value
+        elif param == "seed":
+            optional_params["seed"] = value
+        elif param == "reasoning_effort" and isinstance(value, str):
+            optional_params[
+                "thinkingConfig"
+            ] = VertexGeminiConfig._map_reasoning_effort_to_thinking_budget(value)
+        elif param == "thinking":
+            optional_params[
+                "thinkingConfig"
+            ] = VertexGeminiConfig._map_thinking_param(
+                cast(AnthropicThinkingParam, value)
+            )
+        elif param == "modalities" and isinstance(value, list):
+            response_modalities = self.map_response_modalities(value)
+            optional_params["responseModalities"] = response_modalities
+        elif param == "web_search_options" and value and isinstance(value, dict):
+            _tools = self._map_web_search_options(value)
+            optional_params = self._add_tools_to_optional_params(
+                optional_params, [_tools]
+            )
         return optional_params
 
     def get_mapped_special_auth_params(self) -> dict:
