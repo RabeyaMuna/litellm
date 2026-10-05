@@ -75,7 +75,10 @@ class AmazonNovaCanvasConfig:
             text_to_image_params = {"text": text, **text_to_image_params}
             try:
                 text_to_image_params_typed = AmazonNovaCanvasTextToImageParams(
-                    **text_to_image_params  # type: ignore
+                    text=text_to_image_params.get("text", text),
+                    maskImage=text_to_image_params.get("maskImage"),
+                    inputImage=text_to_image_params.get("inputImage"),
+                    negativeText=text_to_image_params.get("negativeText"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -84,7 +87,12 @@ class AmazonNovaCanvasConfig:
 
             try:
                 image_generation_config_typed = AmazonNovaCanvasImageGenerationConfig(
-                    **image_generation_config
+                    aspectRatio=image_generation_config.get("aspectRatio"),
+                    seed=image_generation_config.get("seed"),
+                    quality=image_generation_config.get("quality"),
+                    width=image_generation_config.get("width"),
+                    height=image_generation_config.get("height"),
+                    numberOfImages=image_generation_config.get("numberOfImages"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -106,7 +114,10 @@ class AmazonNovaCanvasConfig:
             }
             try:
                 color_guided_generation_params_typed = AmazonNovaCanvasColorGuidedGenerationParams(
-                    **color_guided_generation_params  # type: ignore
+                    text=color_guided_generation_params.get("text", text),
+                    maskImage=color_guided_generation_params.get("maskImage"),
+                    inputImage=color_guided_generation_params.get("inputImage"),
+                    negativeText=color_guided_generation_params.get("negativeText"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -115,7 +126,12 @@ class AmazonNovaCanvasConfig:
 
             try:
                 image_generation_config_typed = AmazonNovaCanvasImageGenerationConfig(
-                    **image_generation_config
+                    aspectRatio=image_generation_config.get("aspectRatio"),
+                    seed=image_generation_config.get("seed"),
+                    quality=image_generation_config.get("quality"),
+                    width=image_generation_config.get("width"),
+                    height=image_generation_config.get("height"),
+                    numberOfImages=image_generation_config.get("numberOfImages"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -134,7 +150,10 @@ class AmazonNovaCanvasConfig:
             inpainting_params = {"text": text, **inpainting_params}
             try:
                 inpainting_params_typed = AmazonNovaCanvasInpaintingParams(
-                    **inpainting_params
+                    text=inpainting_params.get("text", text),
+                    maskImage=inpainting_params.get("maskImage"),
+                    inputImage=inpainting_params.get("inputImage"),
+                    negativeText=inpainting_params.get("negativeText"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -143,7 +162,12 @@ class AmazonNovaCanvasConfig:
 
             try:
                 image_generation_config_typed = AmazonNovaCanvasImageGenerationConfig(
-                    **image_generation_config
+                    aspectRatio=image_generation_config.get("aspectRatio"),
+                    seed=image_generation_config.get("seed"),
+                    quality=image_generation_config.get("quality"),
+                    width=image_generation_config.get("width"),
+                    height=image_generation_config.get("height"),
+                    numberOfImages=image_generation_config.get("numberOfImages"),
                 )
             except Exception as e:
                 raise ValueError(
@@ -185,7 +209,9 @@ class AmazonNovaCanvasConfig:
         Transform the response dict to the OpenAI response
         """
 
-        nova_response = AmazonNovaCanvasTextToImageResponse(**response_dict)
+        nova_response = AmazonNovaCanvasTextToImageResponse(
+            images=response_dict.get("images", [])
+        )
         openai_images: List[Image] = []
         for _img in nova_response.get("images", []):
             openai_images.append(Image(b64_json=_img))

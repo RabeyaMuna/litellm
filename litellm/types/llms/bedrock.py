@@ -513,7 +513,7 @@ class BedrockPreparedRequest(TypedDict):
     endpoint_url: str
     prepped: AWSPreparedRequest
     body: bytes
-    data: dict
+    data: dict[str, Any]
 
 
 class BedrockRerankTextQuery(TypedDict):
@@ -527,7 +527,7 @@ class BedrockRerankQuery(TypedDict):
 
 class BedrockRerankModelConfiguration(TypedDict, total=False):
     modelArn: Required[str]
-    modelConfiguration: dict
+    modelConfiguration: dict[str, Any]
 
 
 class BedrockRerankBedrockRerankingConfiguration(TypedDict):
@@ -545,7 +545,7 @@ class BedrockRerankTextDocument(TypedDict, total=False):
 
 
 class BedrockRerankInlineDocumentSource(TypedDict, total=False):
-    jsonDocument: dict
+    jsonDocument: dict[str, Any]
     textDocument: BedrockRerankTextDocument
     type: Literal["TEXT", "JSON"]
 
