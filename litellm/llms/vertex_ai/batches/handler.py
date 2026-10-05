@@ -117,8 +117,8 @@ class VertexAIBatchPrediction(VertexLLM):
         )
         return vertex_batch_response
 
+    @staticmethod
     def create_vertex_url(
-        self,
         vertex_location: str,
         vertex_project: str,
     ) -> str:
