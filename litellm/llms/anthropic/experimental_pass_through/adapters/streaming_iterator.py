@@ -37,6 +37,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
     sent_content_block_finish: bool = False
     current_content_block_type: Literal["text", "tool_use"] = "text"
     sent_last_message: bool = False
+    pending_new_content_block: bool = False
     holding_chunk: Optional[Any] = None
     holding_stop_reason_chunk: Optional[Any] = None
     current_content_block_index: int = 0
@@ -143,7 +144,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
             verbose_logger.error(
                 "Anthropic Adapter - {}\n{}".format(e, traceback.format_exc())
             )
-            raise StopAsyncIteration
+            raise
 
     async def __anext__(self):
         from .transformation import LiteLLMAnthropicMessagesAdapter
