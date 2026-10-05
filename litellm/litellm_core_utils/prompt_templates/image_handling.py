@@ -17,9 +17,7 @@ in_memory_cache = InMemoryCache(max_size_in_memory=MAX_IMGS_IN_MEMORY)
 
 def _process_image_response(response: Response, url: str) -> str:
     if response.status_code != 200:
-        raise Exception(
-            f"Error: Unable to fetch image from URL. Status code: {response.status_code}, url={url}"
-        )
+        return None
 
     image_bytes = response.content
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -56,7 +54,9 @@ async def async_convert_url_to_base64(url: str) -> str:
     for _ in range(3):
         try:
             response = await client.get(url, follow_redirects=True)
-            return _process_image_response(response, url)
+            processed_response = _process_image_response(response, url)
+            if processed_response is not None:
+                return processed_response
         except Exception:
             pass
     raise Exception(
@@ -73,7 +73,9 @@ def convert_url_to_base64(url: str) -> str:
     for _ in range(3):
         try:
             response = client.get(url, follow_redirects=True)
-            return _process_image_response(response, url)
+            processed_response = _process_image_response(response, url)
+            if processed_response is not None:
+                return processed_response
         except Exception as e:
             verbose_logger.exception(e)
             # print(e)
