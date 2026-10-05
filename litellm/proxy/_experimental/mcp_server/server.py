@@ -56,6 +56,9 @@ if MCP_AVAILABLE:
     from litellm.proxy._experimental.mcp_server.auth.litellm_auth_handler import (
         MCPAuthenticatedUser,
     )
+    from litellm.proxy._experimental.mcp_server.auth.user_api_key_auth_mcp import (
+        MCPRequestHandler,
+    )
     from litellm.proxy._experimental.mcp_server.mcp_server_manager import (
         global_mcp_server_manager,
     )
@@ -450,7 +453,7 @@ if MCP_AVAILABLE:
             global_mcp_server_manager._get_mcp_server_from_tool_name(name)
         )
         if mcp_server:
-            standard_logging_mcp_tool_call["mcp_server_cost_info"] = (
+            standard_logging_mcp_tool_call.mcp_server_cost_info = (
                 mcp_server.mcp_info or {}
             ).get("mcp_server_cost_info")
             response =  await _handle_managed_mcp_tool(
