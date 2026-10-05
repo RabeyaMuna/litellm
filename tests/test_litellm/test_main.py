@@ -160,7 +160,7 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            "url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEhUQEhIVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhABAQEAAAAAAAAAAAAAAAAAAAER/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAL/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD8A//Z",
                             "format": "image/png",
                         },
                     },
@@ -170,14 +170,11 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
         ],
     }
     with patch.object(client, "post", new=MagicMock()) as mock_client:
-        try:
-            if sync_mode:
-                response = completion(**args, client=client)
-            else:
-                response = await acompletion(**args, client=client)
-            print(response)
-        except Exception as e:
-            pass
+        if sync_mode:
+            response = completion(**args, client=client)
+        else:
+            response = await acompletion(**args, client=client)
+        print(response)
 
         mock_client.assert_called()
 
@@ -218,7 +215,7 @@ async def test_url_with_format_param_openai(model, sync_mode):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            "url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxISEhUQEhIVFhUVFRUVFRUVFRUVFRUVFRUWFhUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OFxAQFy0dHR0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAAEAAQMBIgACEQEDEQH/xAAXAAEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhABAQEAAAAAAAAAAAAAAAAAAAER/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAL/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD8A//Z",
                             "format": "image/png",
                         },
                     },
@@ -549,7 +546,8 @@ async def test_async_mock_delay():
     assert delay >= 0.01
 
 
-def test_stream_chunk_builder_thinking_blocks():
+@pytest.mark.asyncio
+async def test_stream_chunk_builder_thinking_blocks():
     from litellm import stream_chunk_builder
     from litellm.types.utils import Delta, ModelResponseStream, StreamingChoices
 
@@ -1091,7 +1089,7 @@ def test_stream_chunk_builder_thinking_blocks():
         ),
     ]
 
-    response = stream_chunk_builder(chunks=chunks)
+    response = await stream_chunk_builder(chunks=chunks)
     print(response)
 
     assert response is not None
