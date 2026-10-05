@@ -81,8 +81,6 @@ class VolcEngineConfig(OpenAILikeChatConfig):
         )
 
         if "thinking" in optional_params:
-            optional_params.setdefault("extra_body", {})["thinking"] = (
-                optional_params.pop("thinking")
-            )
+            optional_params["thinking"] = optional_params.pop("thinking")
 
         return optional_params
