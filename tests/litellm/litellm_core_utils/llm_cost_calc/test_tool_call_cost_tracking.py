@@ -121,7 +121,7 @@ def test_get_cost_for_built_in_tools_file_search():
 
 def test_get_cost_for_anthropic_web_search():
     """
-    Test that the cost for a web search is 0.00 when no response object is provided
+    Test that the cost for a web search is greater than 0.0 when a web search request is made
     """
     from litellm.types.utils import ServerToolUse, Usage
 
