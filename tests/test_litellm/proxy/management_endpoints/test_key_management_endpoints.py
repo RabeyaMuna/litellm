@@ -391,7 +391,7 @@ async def test_key_update_object_permissions_no_existing_permission(monkeypatch)
 
     # Verify find_unique was called with None
     mock_prisma_client.db.litellm_objectpermissiontable.find_unique.assert_called_once_with(
-        where={"object_permission_id": None}
+        where={"object_permission_id": existing_key_row_no_perm.object_permission_id}
     )
 
     # Verify upsert was called to create new record
