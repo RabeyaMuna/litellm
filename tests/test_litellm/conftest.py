@@ -25,28 +25,33 @@ def setup_and_teardown():
     import litellm
     from litellm import Router
 
-    importlib.reload(litellm)
-
-    try:
-        if hasattr(litellm, "proxy") and hasattr(litellm.proxy, "proxy_server"):
-            import litellm.proxy.proxy_server
-
-            importlib.reload(litellm.proxy.proxy_server)
-    except Exception as e:
-        print(f"Error reloading litellm.proxy.proxy_server: {e}")
+    # Avoid reloading litellm modules to prevent logging configuration issues
+    # importlib.reload(litellm)
+    # try:
+    #     if hasattr(litellm, "proxy") and hasattr(litellm.proxy, "proxy_server"):
+    #         import litellm.proxy.proxy_server
+    #         importlib.reload(litellm.proxy.proxy_server)
+    # except Exception as e:
+    #     print(f"Error reloading litellm.proxy.proxy_server: {e}")
 
     litellm.in_memory_llm_clients_cache.flush_cache()
 
     import asyncio
 
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Use existing event loop if available; do not force a new loop
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     print(litellm)
     # from litellm import Router, completion, aembedding, acompletion, embedding
     yield
 
     # Teardown code (executes after the yield point)
-    loop.close()  # Close the loop created earlier
+    # Only close the loop if we created it
+    if loop.is_closed() is False:
+        loop.close()
     asyncio.set_event_loop(None)  # Remove the reference to the loop
 
 

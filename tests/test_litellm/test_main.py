@@ -160,7 +160,7 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg",
+                            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
                             "format": "image/png",
                         },
                     },
@@ -170,6 +170,9 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
         ],
     }
     with patch.object(client, "post", new=MagicMock()) as mock_client:
+        # Mock the cost mapping to avoid ValueError for unmapped models
+        monkeypatch.setattr("litellm.cost_calculator.get_model_info", lambda x: {"input_cost_per_token": 0.001, "output_cost_per_token": 0.002})
+        
         try:
             if sync_mode:
                 response = completion(**args, client=client)
