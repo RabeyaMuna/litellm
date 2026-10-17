@@ -138,7 +138,7 @@ class ConverseResponseBlock(TypedDict):
 
 class ToolJsonSchemaBlock(TypedDict, total=False):
     type: Literal["object"]
-    properties: dict
+    properties: Dict[str, Any]
     required: List[str]
 
 
