@@ -36,15 +36,15 @@ MOCK_DB_GUARDRAIL = {
     "updated_at": datetime.now(),
 }
 
-MOCK_CONFIG_GUARDRAIL = {
-    "guardrail_id": "test-config-guardrail",
-    "guardrail_name": "Test Config Guardrail",
-    "litellm_params": {
-        "guardrail": "custom_guardrail.myCustomGuardrail",
-        "mode": "during_call",
-    },
-    "guardrail_info": {"description": "Test guardrail from config"},
-}
+MOCK_CONFIG_GUARDRAIL = GuardrailInfoResponse(
+    guardrail_id="test-config-guardrail",
+    guardrail_name="Test Config Guardrail",
+    litellm_params=LitellmParams(
+        guardrail="custom_guardrail.myCustomGuardrail",
+        mode="during_call",
+    ),
+    guardrail_info={"description": "Test guardrail from config"},
+)
 
 
 @pytest.fixture
