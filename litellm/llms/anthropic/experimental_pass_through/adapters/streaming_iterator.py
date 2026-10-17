@@ -74,7 +74,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                 }
 
             # Handle pending new content block start
-            if self.pending_new_content_block:
+            if hasattr(self, "pending_new_content_block") and self.pending_new_content_block:
                 self.pending_new_content_block = False
                 self.sent_content_block_finish = False  # Reset for new block
                 return {
@@ -110,10 +110,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                         "index": max(self.current_content_block_index - 1, 0),
                     }
 
-                if (
-                    processed_chunk["type"] == "message_delta"
-                    and self.sent_content_block_finish is False
-                ):
+                if processed_chunk["type"] == "message_delta" and self.sent_content_block_finish is False:
                     self.holding_chunk = processed_chunk
                     self.sent_content_block_finish = True
                     return {
@@ -140,9 +137,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                 return {"type": "message_stop"}
             raise StopIteration
         except Exception as e:
-            verbose_logger.error(
-                "Anthropic Adapter - {}\n{}".format(e, traceback.format_exc())
-            )
+            verbose_logger.error("Anthropic Adapter - {}\n{}".format(e, traceback.format_exc()))
             raise StopAsyncIteration
 
     async def __anext__(self):
@@ -199,10 +194,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                 )
 
                 # Check if this is a usage chunk and we have a held stop_reason chunk
-                if (
-                    self.holding_stop_reason_chunk is not None
-                    and getattr(chunk, "usage", None) is not None
-                ):
+                if self.holding_stop_reason_chunk is not None and getattr(chunk, "usage", None) is not None:
                     # Merge usage into the held stop_reason chunk
                     merged_chunk = self.holding_stop_reason_chunk.copy()
                     if "delta" not in merged_chunk:
@@ -256,10 +248,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                     # Return the first queued item
                     return self.chunk_queue.popleft()
 
-                if (
-                    processed_chunk["type"] == "message_delta"
-                    and self.sent_content_block_finish is False
-                ):
+                if processed_chunk["type"] == "message_delta" and self.sent_content_block_finish is False:
                     # Queue both the content_block_stop and the holding chunk
                     self.chunk_queue.append(
                         {
