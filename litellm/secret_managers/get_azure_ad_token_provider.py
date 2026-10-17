@@ -26,12 +26,11 @@ def get_azure_ad_token_provider() -> Callable[[], str]:
         get_bearer_token_provider,
     )
 
-    azure_scope = os.environ.get(
-        "AZURE_SCOPE", "https://cognitiveservices.azure.com/.default"
-    )
+    azure_scope = os.environ.get("AZURE_SCOPE", "https://cognitiveservices.azure.com/.default")
     cred: Union[AzureCredentialType, str] = AzureCredentialType(
         os.environ.get("AZURE_CREDENTIAL", AzureCredentialType.ClientSecretCredential)
     )
+    credential: Union[ClientSecretCredential, ManagedIdentityCredential, CertificateCredential, Any]
     if cred == AzureCredentialType.ClientSecretCredential:
         credential = ClientSecretCredential(
             client_id=os.environ["AZURE_CLIENT_ID"],
