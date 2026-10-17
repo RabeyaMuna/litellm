@@ -4,19 +4,20 @@
 #                   https://onyx.security/
 #
 # +-------------------------------------------------------------+
-from enum import Enum
 import os
-from typing import TYPE_CHECKING, Any, Optional, Type, Union
 import uuid
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Optional, Type, Union
 
 from fastapi import HTTPException
+
 from litellm._logging import verbose_proxy_logger
+from litellm.caching.caching import DualCache
+from litellm.integrations.custom_guardrail import CustomGuardrail
 from litellm.llms.custom_httpx.http_handler import (
     get_async_httpx_client,
     httpxSpecialProvider,
 )
-from litellm.caching.caching import DualCache
-from litellm.integrations.custom_guardrail import CustomGuardrail
 from litellm.proxy._types import UserAPIKeyAuth
 from litellm.types.utils import CallTypesLiteral, LLMResponseTypes
 
@@ -166,7 +167,7 @@ class OnyxGuardrail(CustomGuardrail):
             # Convert response to dict format for validation
             if isinstance(response, dict):
                 # TypedDict or plain dict
-                payload = response
+                payload: dict = response
             elif hasattr(response, "model_dump"):
                 # Pydantic model
                 payload = response.model_dump()
