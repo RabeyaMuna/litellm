@@ -145,7 +145,7 @@ def prisma_client():
     return prisma_client
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio()()
 @pytest.mark.flaky(retries=6, delay=1)
 async def test_new_user_response(prisma_client):
     try:
