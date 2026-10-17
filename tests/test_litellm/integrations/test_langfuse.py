@@ -21,10 +21,11 @@ def test_max_langfuse_clients_limit():
     """
     # Set max clients to 2 for testing
     with patch(
-        "litellm.integrations.langfuse.langfuse.MAX_LANGFUSE_INITIALIZED_CLIENTS", 2
+        "litellm.integrations.langfuse.MAX_LANGFUSE_INITIALIZED_CLIENTS", 2
     ):
         # Reset the counter
-        litellm.initialized_langfuse_clients = 0
+        from litellm.integrations.langfuse import initialized_langfuse_clients
+        initialized_langfuse_clients = 0
 
         # First client should succeed
         logger1 = LangFuseLogger(
@@ -32,7 +33,8 @@ def test_max_langfuse_clients_limit():
             langfuse_secret="test_secret_1",
             langfuse_host="https://test1.langfuse.com",
         )
-        assert litellm.initialized_langfuse_clients == 1
+        from litellm.integrations.langfuse import initialized_langfuse_clients
+        assert initialized_langfuse_clients == 1
 
         # Second client should succeed
         logger2 = LangFuseLogger(
@@ -40,7 +42,8 @@ def test_max_langfuse_clients_limit():
             langfuse_secret="test_secret_2",
             langfuse_host="https://test2.langfuse.com",
         )
-        assert litellm.initialized_langfuse_clients == 2
+        from litellm.integrations.langfuse import initialized_langfuse_clients
+        assert initialized_langfuse_clients == 2
 
         # Third client should fail with exception
         with pytest.raises(Exception) as exc_info:
@@ -54,4 +57,5 @@ def test_max_langfuse_clients_limit():
         assert "Max langfuse clients reached" in str(exc_info.value)
 
         # Counter should still be 2 (third client failed to initialize)
-        assert litellm.initialized_langfuse_clients == 2
+        from litellm.integrations.langfuse import initialized_langfuse_clients
+        assert initialized_langfuse_clients == 2
