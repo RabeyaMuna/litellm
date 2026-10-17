@@ -10,7 +10,6 @@ sys.path.insert(
 
 from litellm.proxy.proxy_cli import ProxyInitializationHelpers
 import builtins
-from litellm.proxy.proxy_cli import run_separate_health_app
 import types
 
 
@@ -340,6 +339,9 @@ def test_run_separate_health_app_runs_only_when_flag(monkeypatch):
     dummy_health_endpoints = types.ModuleType("litellm.proxy.health_endpoints._health_endpoints")
     dummy_health_endpoints.router = object()
     monkeypatch.setitem(sys.modules, "litellm.proxy.health_endpoints._health_endpoints", dummy_health_endpoints)
+
+    # Import the function from the correct location
+    from litellm.proxy.health_endpoints._health_endpoints import run_separate_health_app
 
     # Should NOT run if flag is not set
     monkeypatch.setenv("SEPARATE_HEALTH_APP", "0")
