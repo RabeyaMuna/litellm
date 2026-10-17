@@ -294,7 +294,7 @@ def test_process_items_basic():
     process_items(schema)
     assert schema["properties"]["nested"]["items"] == {"type": "object"}
 
-def test_get_vertex_url_global_region(stream):
+def test_get_vertex_url_global_region():
     """
     Test _get_vertex_url when vertex_location is 'global' for chat mode.
     """
@@ -304,27 +304,28 @@ def test_get_vertex_url_global_region(stream):
     vertex_location = "global"
     vertex_api_version = "v1"
 
-    # Mock litellm.VertexGeminiConfig.get_model_for_vertex_ai_url to return model as is
-    # as we are not testing that part here, just the URL construction
-    with patch("litellm.VertexGeminiConfig.get_model_for_vertex_ai_url", side_effect=lambda model: model):
-        url, endpoint = _get_vertex_url(
-            mode=mode,
-            model=model,
-            stream=stream,
-            vertex_project=vertex_project,
-            vertex_location=vertex_location,
-            vertex_api_version=vertex_api_version,
-        )
+    # Test both streaming and non-streaming cases
+    for stream in [True, False]:
+        # Mock litellm.VertexGeminiConfig.get_model_for_vertex_ai_url to return model as is
+        # as we are not testing that part here, just the URL construction
+        with patch("litellm.VertexGeminiConfig.get_model_for_vertex_ai_url", side_effect=lambda model: model):
+            url, endpoint = _get_vertex_url(
+                mode=mode,
+                model=model,
+                stream=stream,
+                vertex_project=vertex_project,
+                vertex_location=vertex_location,
+                vertex_api_version=vertex_api_version,
+            )
 
-    expected_url_base = f"https://aiplatform.googleapis.com/{vertex_api_version}/projects/{vertex_project}/locations/global/publishers/google/models/{model}"
-    
-    if stream:
-        expected_endpoint = "streamGenerateContent"
-        expected_url = f"{expected_url_base}:{expected_endpoint}?alt=sse"
-    else:
-        expected_endpoint = "generateContent"
-        expected_url = f"{expected_url_base}:{expected_endpoint}"
+        expected_url_base = f"https://aiplatform.googleapis.com/{vertex_api_version}/projects/{vertex_project}/locations/global/publishers/google/models/{model}"
+        
+        if stream:
+            expected_endpoint = "streamGenerateContent"
+            expected_url = f"{expected_url_base}:{expected_endpoint}?alt=sse"
+        else:
+            expected_endpoint = "generateContent"
+            expected_url = f"{expected_url_base}:{expected_endpoint}"
 
-
-    assert endpoint == expected_endpoint
-    assert url == expected_url
+        assert endpoint == expected_endpoint
+        assert url == expected_url
