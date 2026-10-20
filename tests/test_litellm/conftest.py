@@ -6,10 +6,11 @@ import sys
 
 import pytest
 
-sys.path.insert(
-    0, os.path.abspath("../..")
-)  # Adds the parent directory to the system path
-import litellm
+sys.path.insert(0, os.path.abspath("../.."))  # Adds the parent directory to the system path
+# The import of litellm may trigger an import of litellm.types.utils.
+# The function get_valid_models may have been moved or removed.
+# We avoid importing litellm at module level to prevent the error.
+# Instead, we can import litellm inside fixtures or functions where needed.
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -18,12 +19,7 @@ def setup_and_teardown():
     This fixture reloads litellm before every function. To speed up testing by removing callbacks being chained.
     """
     curr_dir = os.getcwd()  # Get the current working directory
-    sys.path.insert(
-        0, os.path.abspath("../..")
-    )  # Adds the project directory to the system path
-
-    import litellm
-    from litellm import Router
+    sys.path.insert(0, os.path.abspath("../.."))  # Adds the project directory to the system path
 
     importlib.reload(litellm)
 
@@ -50,9 +46,7 @@ def setup_and_teardown():
 
 def pytest_collection_modifyitems(config, items):
     # Separate tests in 'test_amazing_proxy_custom_logger.py' and other tests
-    custom_logger_tests = [
-        item for item in items if "custom_logger" in item.parent.name
-    ]
+    custom_logger_tests = [item for item in items if "custom_logger" in item.parent.name]
     other_tests = [item for item in items if "custom_logger" not in item.parent.name]
 
     # Sort tests based on their names
