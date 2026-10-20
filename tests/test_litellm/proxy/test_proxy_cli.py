@@ -4,13 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-sys.path.insert(
-    0, os.path.abspath("../../..")
-)  # Adds the parent directory to the system-path
+sys.path.insert(0, os.path.abspath("../../.."))  # Adds the parent directory to the system-path
 
 from litellm.proxy.proxy_cli import ProxyInitializationHelpers
 import builtins
-from litellm.proxy.proxy_cli import run_separate_health_app
 import types
 
 
@@ -66,53 +63,37 @@ class TestProxyInitializationHelpers:
 
         # Execute
         with pytest.raises(ValueError, match="Invalid test value"):
-            ProxyInitializationHelpers._run_test_chat_completion(
-                "localhost", 8000, "gpt-3.5-turbo", True
-            )
+            ProxyInitializationHelpers._run_test_chat_completion("localhost", 8000, "gpt-3.5-turbo", True)
 
         # Test with valid string test value
-        ProxyInitializationHelpers._run_test_chat_completion(
-            "localhost", 8000, "gpt-3.5-turbo", "http://test-url"
-        )
+        ProxyInitializationHelpers._run_test_chat_completion("localhost", 8000, "gpt-3.5-turbo", "http://test-url")
 
         # Assert
-        mock_openai.assert_called_once_with(
-            api_key="My API Key", base_url="http://test-url"
-        )
+        mock_openai.assert_called_once_with(api_key="My API Key", base_url="http://test-url")
         mock_client.chat.completions.create.assert_called()
 
     def test_get_default_unvicorn_init_args(self):
         # Test without log_config
-        args = ProxyInitializationHelpers._get_default_unvicorn_init_args(
-            "localhost", 8000
-        )
+        args = ProxyInitializationHelpers._get_default_unvicorn_init_args("localhost", 8000)
         assert args["app"] == "litellm.proxy.proxy_server:app"
         assert args["host"] == "localhost"
         assert args["port"] == 8000
 
         # Test with log_config
-        args = ProxyInitializationHelpers._get_default_unvicorn_init_args(
-            "localhost", 8000, "log_config.json"
-        )
+        args = ProxyInitializationHelpers._get_default_unvicorn_init_args("localhost", 8000, "log_config.json")
         assert args["log_config"] == "log_config.json"
 
         # Test with json_logs=True
         with patch("litellm.json_logs", True):
-            args = ProxyInitializationHelpers._get_default_unvicorn_init_args(
-                "localhost", 8000
-            )
+            args = ProxyInitializationHelpers._get_default_unvicorn_init_args("localhost", 8000)
             assert args["log_config"] is None
 
         # Test with keepalive_timeout
-        args = ProxyInitializationHelpers._get_default_unvicorn_init_args(
-            "localhost", 8000, None, 60
-        )
+        args = ProxyInitializationHelpers._get_default_unvicorn_init_args("localhost", 8000, None, 60)
         assert args["timeout_keep_alive"] == 60
 
         # Test with both log_config and keepalive_timeout
-        args = ProxyInitializationHelpers._get_default_unvicorn_init_args(
-            "localhost", 8000, "log_config.json", 120
-        )
+        args = ProxyInitializationHelpers._get_default_unvicorn_init_args("localhost", 8000, "log_config.json", 120)
         assert args["log_config"] == "log_config.json"
         assert args["timeout_keep_alive"] == 120
 
@@ -123,17 +104,13 @@ class TestProxyInitializationHelpers:
         mock_app = MagicMock()
 
         # Execute
-        ProxyInitializationHelpers._init_hypercorn_server(
-            mock_app, "localhost", 8000, None, None, None
-        )
+        ProxyInitializationHelpers._init_hypercorn_server(mock_app, "localhost", 8000, None, None, None)
 
         # Assert
         mock_asyncio_run.assert_called_once()
 
         # Test with SSL
-        ProxyInitializationHelpers._init_hypercorn_server(
-            mock_app, "localhost", 8000, "cert.pem", "key.pem", "ECDHE"
-        )
+        ProxyInitializationHelpers._init_hypercorn_server(mock_app, "localhost", 8000, "cert.pem", "key.pem", "ECDHE")
 
     @patch("subprocess.Popen")
     def test_run_ollama_serve(self, mock_popen):
@@ -200,7 +177,9 @@ class TestProxyInitializationHelpers:
             database_name_enc = urllib.parse.quote_plus(database_name)
 
             # Construct DATABASE_URL from the provided variables
-            database_url = f"postgresql://{database_username_enc}:{database_password_enc}@{database_host}/{database_name_enc}"
+            database_url = (
+                f"postgresql://{database_username_enc}:{database_password_enc}@{database_host}/{database_name_enc}"
+            )
 
             # Assert the correct URL was constructed with properly escaped characters
             expected_url = "postgresql://user%40with%2Bspecial:pass%26word%21%40%23%24%25@localhost:5432/db_name%2Ftest"
@@ -237,9 +216,7 @@ class TestProxyInitializationHelpers:
                     save_worker_config=mock_save_worker_config,
                 )
             },
-        ), patch(
-            "litellm.proxy.proxy_cli.ProxyInitializationHelpers._get_default_unvicorn_init_args"
-        ) as mock_get_args:
+        ), patch("litellm.proxy.proxy_cli.ProxyInitializationHelpers._get_default_unvicorn_init_args") as mock_get_args:
             mock_get_args.return_value = {
                 "app": "litellm.proxy.proxy_server:app",
                 "host": "localhost",
@@ -250,9 +227,7 @@ class TestProxyInitializationHelpers:
 
             assert result.exit_code == 0
             mock_uvicorn_run.assert_not_called()
-            mock_print.assert_any_call(
-                "LiteLLM: Setup complete. Skipping server startup as requested."
-            )
+            mock_print.assert_any_call("LiteLLM: Setup complete. Skipping server startup as requested.")
 
             mock_uvicorn_run.reset_mock()
             mock_print.reset_mock()
@@ -287,9 +262,7 @@ class TestProxyInitializationHelpers:
                     save_worker_config=mock_save_worker_config,
                 )
             },
-        ), patch(
-            "litellm.proxy.proxy_cli.ProxyInitializationHelpers._get_default_unvicorn_init_args"
-        ) as mock_get_args:
+        ), patch("litellm.proxy.proxy_cli.ProxyInitializationHelpers._get_default_unvicorn_init_args") as mock_get_args:
             mock_get_args.return_value = {
                 "app": "litellm.proxy.proxy_server:app",
                 "host": "localhost",
@@ -307,7 +280,7 @@ class TestProxyInitializationHelpers:
                 keepalive_timeout=30,
             )
             mock_uvicorn_run.assert_called_once()
-            
+
             # Check that the uvicorn.run was called with the timeout_keep_alive parameter
             call_args = mock_uvicorn_run.call_args
             assert call_args[1]["timeout_keep_alive"] == 30
@@ -319,20 +292,26 @@ def test_run_separate_health_app_runs_only_when_flag(monkeypatch):
     monkeypatch.setattr(builtins, "print", lambda *args, **kwargs: printed.append(args))
     # Patch threading.Thread to track if it's started
     started = {}
+
     class DummyThread:
         def __init__(self, target, daemon):
-            started['called'] = True
+            started["called"] = True
+
         def start(self):
-            started['started'] = True
+            started["started"] = True
+
     monkeypatch.setattr("threading.Thread", DummyThread)
     # Patch uvicorn.run to prevent actual server start
     monkeypatch.setattr("uvicorn.run", lambda *a, **k: None)
+
     # Patch FastAPI import by patching sys.modules['fastapi']
     class DummyFastAPI:
         def __init__(self, *a, **k):
             pass
+
         def include_router(self, router):
             pass
+
     dummy_fastapi = types.ModuleType("fastapi")
     dummy_fastapi.FastAPI = DummyFastAPI
     monkeypatch.setitem(sys.modules, "fastapi", dummy_fastapi)
@@ -354,6 +333,8 @@ def test_run_separate_health_app_runs_only_when_flag(monkeypatch):
     started.clear()
     printed.clear()
     run_separate_health_app()
-    assert started.get('called'), "Should create thread if flag is '1'"
-    assert started.get('started') is None or started.get('started'), "Should start thread if flag is '1'"
-    assert any("LiteLLM Health Endpoints" in str(args) for args in printed), "Should print health endpoint message if flag is '1'"
+    assert started.get("called"), "Should create thread if flag is '1'"
+    assert started.get("started") is None or started.get("started"), "Should start thread if flag is '1'"
+    assert any(
+        "LiteLLM Health Endpoints" in str(args) for args in printed
+    ), "Should print health endpoint message if flag is '1'"
