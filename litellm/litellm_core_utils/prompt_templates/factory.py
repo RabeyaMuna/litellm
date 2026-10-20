@@ -4,7 +4,7 @@ import re
 import uuid
 import xml.etree.ElementTree as ET
 from enum import Enum
-from typing import Any, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, List, Optional, Tuple, Union, cast, overload
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
@@ -1513,7 +1513,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
 ) -> List[
     Union[
         AnthropicMessagesUserMessageParam,
-        AnthopicMessagesAssistantMessageParam,
+        AnthropicMessagesAssistantMessageParam,
     ]
 ]:
     """
@@ -1555,199 +1555,7 @@ def anthropic_messages_pt(  # noqa: PLR0915
         while msg_i < len(messages) and messages[msg_i]["role"] in user_message_types:
             user_message_types_block: Union[
                 ChatCompletionToolMessage,
-                ChatCompletionUserMessage,
-                ChatCompletionFunctionMessage,
-            ] = messages[
-                msg_i
-            ]  # type: ignore
-            if user_message_types_block["role"] == "user":
-                if isinstance(user_message_types_block["content"], list):
-                    for m in user_message_types_block["content"]:
-                        if m.get("type", "") == "image_url":
-                            m = cast(ChatCompletionImageObject, m)
-                            format: Optional[str] = None
-                            if isinstance(m["image_url"], str):
-                                image_chunk = convert_to_anthropic_image_obj(
-                                    openai_image_url=m["image_url"], format=None
-                                )
-                            else:
-                                format = m["image_url"].get("format")
-                                image_chunk = convert_to_anthropic_image_obj(
-                                    openai_image_url=m["image_url"]["url"],
-                                    format=format,
-                                )
-
-                            _anthropic_content_element = (
-                                _anthropic_content_element_factory(image_chunk)
-                            )
-                            _content_element = add_cache_control_to_content(
-                                anthropic_content_element=_anthropic_content_element,
-                                orignal_content_element=dict(m),
-                            )
-
-                            if "cache_control" in _content_element:
-                                _anthropic_content_element["cache_control"] = (
-                                    _content_element["cache_control"]
-                                )
-                            user_content.append(_anthropic_content_element)
-                        elif m.get("type", "") == "text":
-                            m = cast(ChatCompletionTextObject, m)
-                            _anthropic_text_content_element = (
-                                AnthropicMessagesTextParam(
-                                    type="text",
-                                    text=m["text"],
-                                )
-                            )
-                            _content_element = add_cache_control_to_content(
-                                anthropic_content_element=_anthropic_text_content_element,
-                                orignal_content_element=dict(m),
-                            )
-                            _content_element = cast(
-                                AnthropicMessagesTextParam, _content_element
-                            )
-
-                            user_content.append(_content_element)
-                        elif m.get("type", "") == "document":
-                            user_content.append(cast(AnthropicMessagesDocumentParam, m))
-                        elif m.get("type", "") == "file":
-                            user_content.append(
-                                anthropic_process_openai_file_message(
-                                    cast(ChatCompletionFileObject, m)
-                                )
-                            )
-                elif isinstance(user_message_types_block["content"], str):
-                    _anthropic_content_text_element: AnthropicMessagesTextParam = {
-                        "type": "text",
-                        "text": user_message_types_block["content"],
-                    }
-                    _content_element = add_cache_control_to_content(
-                        anthropic_content_element=_anthropic_content_text_element,
-                        orignal_content_element=dict(user_message_types_block),
-                    )
-
-                    if "cache_control" in _content_element:
-                        _anthropic_content_text_element["cache_control"] = (
-                            _content_element["cache_control"]
-                        )
-
-                    user_content.append(_anthropic_content_text_element)
-
-            elif (
-                user_message_types_block["role"] == "tool"
-                or user_message_types_block["role"] == "function"
-            ):
-                # OpenAI's tool message content will always be a string
-                user_content.append(
-                    convert_to_anthropic_tool_result(user_message_types_block)
-                )
-
-            msg_i += 1
-
-        if user_content:
-            new_messages.append({"role": "user", "content": user_content})
-
-        assistant_content: List[AnthropicMessagesAssistantMessageValues] = []
-        ## MERGE CONSECUTIVE ASSISTANT CONTENT ##
-        while msg_i < len(messages) and messages[msg_i]["role"] == "assistant":
-            assistant_content_block: ChatCompletionAssistantMessage = messages[msg_i]  # type: ignore
-
-            thinking_blocks = assistant_content_block.get("thinking_blocks", None)
-            if (
-                thinking_blocks is not None
-            ):  # IMPORTANT: ADD THIS FIRST, ELSE ANTHROPIC WILL RAISE AN ERROR
-                assistant_content.extend(thinking_blocks)
-            if "content" in assistant_content_block and isinstance(
-                assistant_content_block["content"], list
-            ):
-                for m in assistant_content_block["content"]:
-                    # handle thinking blocks
-                    thinking_block = cast(str, m.get("thinking", ""))
-                    text_block = cast(str, m.get("text", ""))
-                    if (
-                        m.get("type", "") == "thinking" and len(thinking_block) > 0
-                    ):  # don't pass empty text blocks. anthropic api raises errors.
-                        anthropic_message: Union[
-                            ChatCompletionThinkingBlock,
-                            AnthropicMessagesTextParam,
-                        ] = cast(ChatCompletionThinkingBlock, m)
-                        assistant_content.append(anthropic_message)
-                    # handle text
-                    elif (
-                        m.get("type", "") == "text" and len(text_block) > 0
-                    ):  # don't pass empty text blocks. anthropic api raises errors.
-                        anthropic_message = AnthropicMessagesTextParam(
-                            type="text", text=text_block
-                        )
-                        _cached_message = add_cache_control_to_content(
-                            anthropic_content_element=anthropic_message,
-                            orignal_content_element=dict(m),
-                        )
-
-                        assistant_content.append(
-                            cast(AnthropicMessagesTextParam, _cached_message)
-                        )
-            elif (
-                "content" in assistant_content_block
-                and isinstance(assistant_content_block["content"], str)
-                and assistant_content_block[
-                    "content"
-                ]  # don't pass empty text blocks. anthropic api raises errors.
-            ):
-                _anthropic_text_content_element = AnthropicMessagesTextParam(
-                    type="text",
-                    text=assistant_content_block["content"],
-                )
-
-                _content_element = add_cache_control_to_content(
-                    anthropic_content_element=_anthropic_text_content_element,
-                    orignal_content_element=dict(assistant_content_block),
-                )
-
-                if "cache_control" in _content_element:
-                    _anthropic_text_content_element["cache_control"] = _content_element[
-                        "cache_control"
-                    ]
-
-                assistant_content.append(_anthropic_text_content_element)
-
-            assistant_tool_calls = assistant_content_block.get("tool_calls")
-            if (
-                assistant_tool_calls is not None
-            ):  # support assistant tool invoke conversion
-                assistant_content.extend(
-                    convert_to_anthropic_tool_invoke(assistant_tool_calls)
-                )
-
-            assistant_function_call = assistant_content_block.get("function_call")
-
-            if assistant_function_call is not None:
-                assistant_content.extend(
-                    convert_function_to_anthropic_tool_invoke(assistant_function_call)
-                )
-
-            msg_i += 1
-
-        if assistant_content:
-            new_messages.append({"role": "assistant", "content": assistant_content})
-
-        if msg_i == init_msg_i:  # prevent infinite loops
-            raise litellm.BadRequestError(
-                message=BAD_MESSAGE_ERROR_STR + f"passed in {messages[msg_i]}",
-                model=model,
-                llm_provider=llm_provider,
-            )
-
-    if len(new_messages) > 0 and new_messages[-1]["role"] == "assistant":
-        if isinstance(new_messages[-1]["content"], str):
-            new_messages[-1]["content"] = new_messages[-1]["content"].rstrip()
-        elif isinstance(new_messages[-1]["content"], list):
-            for content in new_messages[-1]["content"]:
-                if isinstance(content, dict) and content["type"] == "text":
-                    content["text"] = content[
-                        "text"
-                    ].rstrip()  # no trailing whitespace for final assistant message
-
-    return new_messages
+                ChatCompletionUser
 
 
 def extract_between_tags(tag: str, string: str, strip: bool = False) -> List[str]:
