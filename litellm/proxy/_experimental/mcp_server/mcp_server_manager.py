@@ -840,14 +840,13 @@ class MCPServerManager:
             return [], None
 
         raw_servers = data.get("authorization_servers")
+        authorization_servers: List[str] = []
         if isinstance(raw_servers, list):
             authorization_servers = [
                 entry
                 for entry in raw_servers
                 if isinstance(entry, str) and entry.strip() != ""
             ]
-        else:
-            authorization_servers = []
 
         scopes = self._extract_scopes(
             data.get("scopes_supported") or data.get("scopes")

@@ -8,7 +8,7 @@ Validates that:
 
 import pytest
 from litellm.proxy._experimental.mcp_server.mcp_server_manager import MCPServerManager
-from litellm.types.mcp import MCPAuth, MCPTransport, MCPSpecVersion
+from litellm.types.mcp import MCPAuth, MCPTransport
 from litellm.types.mcp_server.mcp_server_manager import MCPServer
 
 
@@ -43,7 +43,7 @@ def test_mcp_server_works_without_config_auth_value():
 
 
 @pytest.mark.parametrize("token_key", ["authentication_token", "auth_value"])
-async def test_mcp_server_config_auth_value_header_used(token_key):
+def test_mcp_server_config_auth_value_header_used(token_key):
     """Ensure auth header is sent when auth token configured in config"""
     config = {
         "test_server": {
@@ -55,7 +55,7 @@ async def test_mcp_server_config_auth_value_header_used(token_key):
     }
 
     manager = MCPServerManager()
-    await manager.load_servers_from_config(config)
+    manager.load_servers_from_config(config)
 
     server = next(iter(manager.config_mcp_servers.values()))
     client = manager._create_mcp_client(server)

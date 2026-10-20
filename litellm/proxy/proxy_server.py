@@ -3095,6 +3095,7 @@ class ProxyConfig:
             general_settings: dict - global general_settings currently in use
             proxy_logging_obj: ProxyLogging
         """
+        from litellm.proxy.proxy_server import llm_router
         _general_settings = config_data.get("general_settings", {})
         if _general_settings is not None and "alerting" in _general_settings:
             if (
@@ -9562,6 +9563,7 @@ async def get_config():  # noqa: PLR0915
     global llm_router, llm_model_list, general_settings, proxy_config, proxy_logging_obj, master_key
     try:
         import base64
+        from litellm.callbacks import AllCallbacks
 
         all_available_callbacks = AllCallbacks()
 
