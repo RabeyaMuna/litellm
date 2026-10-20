@@ -1,8 +1,5 @@
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
-from pydantic import BaseModel
 
 from litellm.llms.volcengine import VolcEngineConfig
 from litellm.utils import get_optional_params
@@ -24,7 +21,7 @@ class TestVolcEngineConfig:
         )
 
         assert mapped_params == {
-            "thinking": {"type": "disabled"},
+            "extra_body": {"thinking": {"type": "disabled"}},
         }
 
         e2e_mapped_params = get_optional_params(
@@ -34,7 +31,7 @@ class TestVolcEngineConfig:
             drop_params=False,
         )
 
-        assert "thinking" in e2e_mapped_params and e2e_mapped_params["thinking"] == {
+        assert "extra_body" in e2e_mapped_params and e2e_mapped_params["extra_body"]["thinking"] == {
             "type": "enabled",
         }
 
@@ -55,9 +52,7 @@ class TestVolcEngineConfig:
         }
         mock_raw_response.parse.return_value = ModelResponse()
 
-        with patch.object(
-            client.chat.completions.with_raw_response, "create", mock_raw_response
-        ) as mock_create:
+        with patch.object(client.chat.completions.with_raw_response, "create", mock_raw_response) as mock_create:
             completion(
                 model="volcengine/doubao-seed-1.6",
                 messages=[
