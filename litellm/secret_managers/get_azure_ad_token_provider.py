@@ -26,28 +26,32 @@ def get_azure_ad_token_provider() -> Callable[[], str]:
         get_bearer_token_provider,
     )
 
-    azure_scope = os.environ.get(
-        "AZURE_SCOPE", "https://cognitiveservices.azure.com/.default"
-    )
+    azure_scope = os.environ.get("AZURE_SCOPE", "https://cognitiveservices.azure.com/.default")
     cred: Union[AzureCredentialType, str] = AzureCredentialType(
         os.environ.get("AZURE_CREDENTIAL", AzureCredentialType.ClientSecretCredential)
     )
     if cred == AzureCredentialType.ClientSecretCredential:
-        credential = ClientSecretCredential(
-            client_id=os.environ["AZURE_CLIENT_ID"],
-            client_secret=os.environ["AZURE_CLIENT_SECRET"],
-            tenant_id=os.environ["AZURE_TENANT_ID"],
+        credential: Union[ClientSecretCredential, ManagedIdentityCredential, CertificateCredential] = (
+            ClientSecretCredential(
+                client_id=os.environ["AZURE_CLIENT_ID"],
+                client_secret=os.environ["AZURE_CLIENT_SECRET"],
+                tenant_id=os.environ["AZURE_TENANT_ID"],
+            )
         )
     elif cred == AzureCredentialType.ManagedIdentityCredential:
-        credential = ManagedIdentityCredential(client_id=os.environ["AZURE_CLIENT_ID"])
+        credential: Union[ClientSecretCredential, ManagedIdentityCredential, CertificateCredential] = (
+            ManagedIdentityCredential(client_id=os.environ["AZURE_CLIENT_ID"])
+        )
     elif cred == AzureCredentialType.CertificateCredential:
-        credential = CertificateCredential(
-            client_id=os.environ["AZURE_CLIENT_ID"],
-            tenant_id=os.environ["AZURE_TENANT_ID"],
-            certificate_path=os.environ["AZURE_CERTIFICATE_PATH"],
+        credential: Union[ClientSecretCredential, ManagedIdentityCredential, CertificateCredential] = (
+            CertificateCredential(
+                client_id=os.environ["AZURE_CLIENT_ID"],
+                tenant_id=os.environ["AZURE_TENANT_ID"],
+                certificate_path=os.environ["AZURE_CERTIFICATE_PATH"],
+            )
         )
     else:
         cred_cls = getattr(identity, cred)
-        credential = cred_cls()
+        credential: Union[ClientSecretCredential, ManagedIdentityCredential, CertificateCredential] = cred_cls()
 
     return get_bearer_token_provider(credential, azure_scope)
