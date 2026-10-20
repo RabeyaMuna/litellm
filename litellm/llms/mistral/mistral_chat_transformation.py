@@ -253,6 +253,7 @@ Then provide a clear, concise answer based on your reasoning."""
                     reasoning_prompt = self._get_mistral_reasoning_system_prompt()
                     
                     # Handle both string and list content
+                    new_content: Union[str, List[dict]]
                     if isinstance(existing_content, str):
                         # String content - prepend reasoning prompt
                         new_content = f"{reasoning_prompt}\n\n{existing_content}"

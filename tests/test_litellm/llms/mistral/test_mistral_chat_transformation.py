@@ -247,7 +247,7 @@ class TestMistralReasoningSupport:
         """Test that non-magistral models ignore reasoning parameters."""
         mistral_config = MistralConfig()
         
-        messages = [
+        messages: List[Dict[str, Any]] = [
             {"role": "user", "content": "What is 15 * 7?"}
         ]
         optional_params = {"_add_reasoning_prompt": True}
