@@ -177,7 +177,8 @@ async def test_url_with_format_param(model, sync_mode, monkeypatch):
                 response = await acompletion(**args, client=client)
             print(response)
         except Exception as e:
-            pass
+            print(f"Exception during completion call: {e}")
+            raise
 
         mock_client.assert_called()
 
