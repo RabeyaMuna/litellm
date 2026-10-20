@@ -38,7 +38,7 @@ def completion(
     provider_config = MistralConfig()
     
     # Get the API base and key from the config
-    api_base, api_key = provider_config._get_openai_compatible_provider_info(
+    api_base, api_key_val = provider_config._get_openai_compatible_provider_info(
         api_base=api_base, api_key=api_key
     )
     
@@ -57,7 +57,7 @@ def completion(
         acompletion=acompletion,
         stream=stream,
         fake_stream=fake_stream,
-        api_key=api_key,
+        api_key=api_key_val,
         headers=headers,
         client=client,
         provider_config=provider_config,  # Pass the Mistral config for transformations
