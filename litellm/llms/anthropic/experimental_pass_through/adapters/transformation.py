@@ -1,6 +1,5 @@
 import json
 from typing import (
-    TYPE_CHECKING,
     Any,
     AsyncIterator,
     List,
@@ -54,10 +53,6 @@ from litellm.types.llms.openai import (
 from litellm.types.utils import Choices, ModelResponse, Usage
 
 from .streaming_iterator import AnthropicStreamWrapper
-
-if TYPE_CHECKING:
-    from litellm.types.llms.anthropic import ContentBlockContentBlockDict
-
 
 class AnthropicAdapter:
     def __init__(self) -> None:
@@ -456,7 +451,7 @@ class LiteLLMAnthropicMessagesAdapter:
         self, choices: List[OpenAIStreamingChoice]
     ) -> Tuple[
         Literal["text", "tool_use"],
-        "ContentBlockContentBlockDict",
+        dict,
     ]:
         import uuid
 
@@ -464,20 +459,32 @@ class LiteLLMAnthropicMessagesAdapter:
 
         for choice in choices:
             if choice.delta.content is not None and len(choice.delta.content) > 0:
-                return "text", TextBlock(type="text", text="")
+                return "text", {
+                    "type": "content_block_start",
+                    "index": 0,
+                    "content_block": TextBlock(type="text", text=""),
+                }
             elif (
                 choice.delta.tool_calls is not None
                 and len(choice.delta.tool_calls) > 0
                 and choice.delta.tool_calls[0].function is not None
             ):
-                return "tool_use", ToolUseBlock(
-                    type="tool_use",
-                    id=choice.delta.tool_calls[0].id or str(uuid.uuid4()),
-                    name=choice.delta.tool_calls[0].function.name or "",
-                    input={},
-                )
+                return "tool_use", {
+                    "type": "content_block_start",
+                    "index": 0,
+                    "content_block": ToolUseBlock(
+                        type="tool_use",
+                        id=choice.delta.tool_calls[0].id or str(uuid.uuid4()),
+                        name=choice.delta.tool_calls[0].function.name or "",
+                        input={},
+                    ),
+                }
 
-        return "text", TextBlock(type="text", text="")
+        return "text", {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": TextBlock(type="text", text=""),
+        }
 
     def _translate_streaming_openai_chunk_to_anthropic(
         self, choices: List[OpenAIStreamingChoice]
