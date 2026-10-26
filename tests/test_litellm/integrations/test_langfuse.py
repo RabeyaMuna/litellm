@@ -19,10 +19,16 @@ def test_max_langfuse_clients_limit():
     """
     Test that the max langfuse clients limit is respected when initializing multiple clients
     """
-    # Set max clients to 2 for testing
-    with patch(
-        "litellm.integrations.langfuse.langfuse.MAX_LANGFUSE_INITIALIZED_CLIENTS", 2
-    ):
+    # We need to patch the module-level variable where it's being used
+    from litellm.integrations.langfuse import langfuse as langfuse_module
+
+    # Save original value
+    original_max = langfuse_module.MAX_LANGFUSE_INITIALIZED_CLIENTS
+
+    try:
+        # Set max clients to 2 for testing by directly modifying the module variable
+        langfuse_module.MAX_LANGFUSE_INITIALIZED_CLIENTS = 2
+
         # Reset the counter
         litellm.initialized_langfuse_clients = 0
 
@@ -55,3 +61,6 @@ def test_max_langfuse_clients_limit():
 
         # Counter should still be 2 (third client failed to initialize)
         assert litellm.initialized_langfuse_clients == 2
+    finally:
+        # Restore original value
+        langfuse_module.MAX_LANGFUSE_INITIALIZED_CLIENTS = original_max

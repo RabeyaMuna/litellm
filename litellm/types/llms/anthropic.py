@@ -127,9 +127,10 @@ class AnthropicContentParamSource(TypedDict):
     data: str
 
 
-class AnthropicContentParamSourceUrl(TypedDict):
-    type: Literal["url"]
-    url: str
+class AnthropicContentParamSourceUrl(TypedDict, total=False):
+    type: Required[Literal["url"]]
+    url: Required[str]
+    media_type: Optional[str]
 
 
 class AnthropicContentParamSourceFileId(TypedDict):
@@ -146,7 +147,11 @@ class AnthropicMessagesContainerUploadParam(TypedDict, total=False):
 class AnthropicMessagesImageParam(TypedDict, total=False):
     type: Required[Literal["image"]]
     source: Required[
-        Union[AnthropicContentParamSource, AnthropicContentParamSourceFileId]
+        Union[
+            AnthropicContentParamSource,
+            AnthropicContentParamSourceFileId,
+            AnthropicContentParamSourceUrl,
+        ]
     ]
     cache_control: Optional[Union[dict, ChatCompletionCachedContent]]
 

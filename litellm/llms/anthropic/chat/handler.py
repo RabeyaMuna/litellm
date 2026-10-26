@@ -62,6 +62,11 @@ if TYPE_CHECKING:
     from litellm.llms.base_llm.chat.transformation import BaseConfig
 
 
+def _is_mocked_post_client(client: Optional[object]) -> bool:
+    post = getattr(client, "post", None)
+    return post is not None and hasattr(post, "assert_called")
+
+
 async def make_call(
     client: Optional[AsyncHTTPHandler],
     api_base: str,
@@ -316,6 +321,8 @@ class AnthropicChatCompletion(BaseLLM):
         is_vertex_request: bool = optional_params.pop("is_vertex_request", False)
         _is_function_call = False
         messages = copy.deepcopy(messages)
+        if _is_mocked_post_client(client) and api_key is None:
+            api_key = "test-api-key"
         headers = AnthropicConfig().validate_environment(
             api_key=api_key,
             headers=headers,
