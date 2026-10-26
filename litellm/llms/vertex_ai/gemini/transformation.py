@@ -62,6 +62,20 @@ else:
     LiteLLMLoggingObj = Any
 
 
+def _is_google_ai_studio_gemini_model(
+    model: str,
+    custom_llm_provider: Literal["vertex_ai", "vertex_ai_beta", "gemini"],
+) -> bool:
+    if custom_llm_provider != "gemini":
+        return False
+
+    normalized_model = model.removeprefix("models/")
+    if normalized_model.startswith("gemini/"):
+        normalized_model = normalized_model.split("/", 1)[1]
+
+    return normalized_model.startswith("gemini-")
+
+
 def _process_gemini_image(image_url: str, format: Optional[str] = None) -> PartType:
     """
     Given an image URL, return the appropriate PartType for Gemini
@@ -325,7 +339,10 @@ def _transform_request_body(
         supports_response_schema = get_supports_response_schema(
             model=model, custom_llm_provider=custom_llm_provider
         )
-        if supports_response_schema is False:
+        if supports_response_schema is False and not _is_google_ai_studio_gemini_model(
+            model=model,
+            custom_llm_provider=custom_llm_provider,
+        ):
             user_response_schema_message = response_schema_prompt(
                 model=model, response_schema=optional_params.get("response_schema")  # type: ignore
             )

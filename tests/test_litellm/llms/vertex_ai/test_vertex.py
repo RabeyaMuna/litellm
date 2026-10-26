@@ -10,7 +10,7 @@ import litellm.litellm_core_utils.prompt_templates
 import litellm.litellm_core_utils.prompt_templates.factory
 
 load_dotenv()
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(
     0, os.path.abspath("../..")
@@ -107,6 +107,51 @@ def test_completion_pydantic_obj_2():
         print(mock_post.call_args.kwargs)
 
         assert mock_post.call_args.kwargs["json"] == expected_request_body
+
+
+def test_completion_pydantic_obj_keeps_gemini_schema_when_support_check_false(
+    monkeypatch,
+):
+    from pydantic import BaseModel
+
+    import litellm.llms.vertex_ai.gemini.transformation as gemini_transformation
+    from litellm.llms.custom_httpx.http_handler import HTTPHandler
+
+    class CalendarEvent(BaseModel):
+        name: str
+        date: str
+        participants: list[str]
+
+    class EventsList(BaseModel):
+        events: list[CalendarEvent]
+
+    monkeypatch.setattr(
+        gemini_transformation,
+        "get_supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+
+    client = HTTPHandler()
+    with patch.object(client, "post", new=MagicMock()) as mock_post:
+        mock_post.return_value = {}
+        try:
+            litellm.completion(
+                model="gemini/gemini-1.5-pro",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": "List important events from the 20th century.",
+                    }
+                ],
+                response_format=EventsList,
+                client=client,
+            )
+        except Exception:
+            pass
+
+        request_body = mock_post.call_args.kwargs["json"]
+        assert len(request_body["contents"][0]["parts"]) == 1
+        assert "response_schema" in request_body["generationConfig"]
 
 
 def test_build_vertex_schema():
@@ -1261,7 +1306,7 @@ def test_vertex_embedding_url(model, expected_url):
     assert endpoint == "predict"
 
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
