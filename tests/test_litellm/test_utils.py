@@ -617,6 +617,18 @@ def test_supports_tool_choice_simple_tests():
     assert litellm.utils.supports_tool_choice(model="perplexity/sonar") is False
 
 
+def test_gradient_ai_provider_chat_config():
+    from litellm.types.utils import LlmProviders
+    from litellm.utils import ProviderConfigManager
+
+    config = ProviderConfigManager.get_provider_chat_config(
+        model="deepseek-r1-distill-llama-70b",
+        provider=LlmProviders.GRADIENT_AI,
+    )
+
+    assert isinstance(config, litellm.GradientAIConfig)
+
+
 def test_check_provider_match():
     """
     Test the _check_provider_match function for various provider scenarios

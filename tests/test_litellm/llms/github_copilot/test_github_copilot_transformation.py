@@ -29,6 +29,8 @@ from litellm.llms.github_copilot.common_utils import (
     GetDeviceCodeError,
     RefreshAPIKeyError,
 )
+from litellm.types.utils import LlmProviders
+from litellm.utils import ProviderConfigManager
 
 
 def test_github_copilot_config_get_openai_compatible_provider_info():
@@ -73,6 +75,17 @@ def test_github_copilot_config_get_openai_compatible_provider_info():
         )
 
     assert "Failed to get API key" in str(excinfo.value)
+
+
+def test_github_copilot_provider_chat_config():
+    """GitHub Copilot should resolve before unrelated provider branches."""
+
+    provider_config = ProviderConfigManager.get_provider_chat_config(
+        model="gpt-4",
+        provider=LlmProviders.GITHUB_COPILOT,
+    )
+
+    assert isinstance(provider_config, GithubCopilotConfig)
 
 
 @patch("litellm.llms.github_copilot.authenticator.Authenticator.get_api_key")
@@ -124,5 +137,4 @@ def test_completion_github_copilot_mock_response(mock_completion, mock_get_api_k
         kwargs.get("model") == "gpt-4"
     )  # Model name should be without provider prefix
     assert kwargs.get("messages") == messages
-
 
