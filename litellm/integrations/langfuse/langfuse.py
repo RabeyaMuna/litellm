@@ -10,7 +10,9 @@ from packaging.version import Version
 
 import litellm
 from litellm._logging import verbose_logger
-from litellm.constants import MAX_LANGFUSE_INITIALIZED_CLIENTS
+from litellm.constants import (
+    MAX_LANGFUSE_INITIALIZED_CLIENTS as DEFAULT_MAX_LANGFUSE_INITIALIZED_CLIENTS,
+)
 from litellm.litellm_core_utils.redact_messages import redact_user_api_key_info
 from litellm.llms.custom_httpx.http_handler import _get_httpx_client
 from litellm.secret_managers.main import str_to_bool
@@ -35,6 +37,8 @@ else:
     DynamicLoggingCache = Any
     StatefulTraceClient = Any
     Langfuse = Any
+
+MAX_LANGFUSE_INITIALIZED_CLIENTS = DEFAULT_MAX_LANGFUSE_INITIALIZED_CLIENTS
 
 
 class LangFuseLogger:

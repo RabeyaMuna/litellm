@@ -14,6 +14,11 @@ MAX_IMGS_IN_MEMORY = 10
 
 in_memory_cache = InMemoryCache(max_size_in_memory=MAX_IMGS_IN_MEMORY)
 
+IMAGE_FETCH_HEADERS = {
+    "User-Agent": "LiteLLM/1.0 (+https://github.com/BerriAI/litellm)",
+    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+}
+
 
 def _process_image_response(response: Response, url: str) -> str:
     if response.status_code != 200:
@@ -55,7 +60,9 @@ async def async_convert_url_to_base64(url: str) -> str:
     client = litellm.module_level_aclient
     for _ in range(3):
         try:
-            response = await client.get(url, follow_redirects=True)
+            response = await client.get(
+                url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             return _process_image_response(response, url)
         except Exception:
             pass
@@ -72,7 +79,9 @@ def convert_url_to_base64(url: str) -> str:
     client = litellm.module_level_client
     for _ in range(3):
         try:
-            response = client.get(url, follow_redirects=True)
+            response = client.get(
+                url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             return _process_image_response(response, url)
         except Exception as e:
             verbose_logger.exception(e)
