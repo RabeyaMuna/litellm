@@ -1,7 +1,6 @@
 import os
 import sys
-from typing import Any, Dict
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -11,13 +10,12 @@ sys.path.insert(
     0, os.path.abspath("../../..")
 )  # Adds the parent directory to the system path
 
-import litellm
 from litellm.llms.vertex_ai.common_utils import (
     convert_anyof_null_to_nullable,
     get_vertex_location_from_url,
     get_vertex_project_id_from_url,
     set_schema_property_ordering,
-    _get_vertex_url
+    _get_vertex_url,
 )
 
 
@@ -141,13 +139,13 @@ async def test_get_supports_system_message():
     result = get_supports_system_message(
         model="gemini/1234567890", custom_llm_provider="vertex_ai"
     )
-    assert result == True
+    assert result is True
 
     # non-fine-tuned vertex gemini models will not specifiy they are in the /gemini spec format
     result = get_supports_system_message(
         model="random-model-name", custom_llm_provider="vertex_ai"
     )
-    assert result == False
+    assert result is False
 
 
 def test_set_schema_property_ordering_with_excessive_nesting():
@@ -294,6 +292,8 @@ def test_process_items_basic():
     process_items(schema)
     assert schema["properties"]["nested"]["items"] == {"type": "object"}
 
+
+@pytest.mark.parametrize("stream", [True, False])
 def test_get_vertex_url_global_region(stream):
     """
     Test _get_vertex_url when vertex_location is 'global' for chat mode.
@@ -306,7 +306,10 @@ def test_get_vertex_url_global_region(stream):
 
     # Mock litellm.VertexGeminiConfig.get_model_for_vertex_ai_url to return model as is
     # as we are not testing that part here, just the URL construction
-    with patch("litellm.VertexGeminiConfig.get_model_for_vertex_ai_url", side_effect=lambda model: model):
+    with patch(
+        "litellm.VertexGeminiConfig.get_model_for_vertex_ai_url",
+        side_effect=lambda model: model,
+    ):
         url, endpoint = _get_vertex_url(
             mode=mode,
             model=model,
@@ -317,14 +320,13 @@ def test_get_vertex_url_global_region(stream):
         )
 
     expected_url_base = f"https://aiplatform.googleapis.com/{vertex_api_version}/projects/{vertex_project}/locations/global/publishers/google/models/{model}"
-    
+
     if stream:
         expected_endpoint = "streamGenerateContent"
         expected_url = f"{expected_url_base}:{expected_endpoint}?alt=sse"
     else:
         expected_endpoint = "generateContent"
         expected_url = f"{expected_url_base}:{expected_endpoint}"
-
 
     assert endpoint == expected_endpoint
     assert url == expected_url
