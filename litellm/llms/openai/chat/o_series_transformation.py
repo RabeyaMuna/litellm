@@ -131,6 +131,9 @@ class OpenAIOSeriesConfig(OpenAIGPTConfig):
 
     def is_model_o_series_model(self, model: str) -> bool:
         model = model.split("/")[-1]  # could be "openai/o3" or "o3"
+        known_o_series_models = {"o1", "o1-preview", "o3", "o3-mini", "o4-mini"}
+        if model in known_o_series_models:
+            return True
         return model in litellm.open_ai_chat_completion_models and any(
             model.startswith(pfx) for pfx in ("o1", "o3", "o4")
         )
