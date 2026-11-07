@@ -5,7 +5,6 @@ import sys
 import httpx
 import pytest
 import respx
-from fastapi.testclient import TestClient
 
 sys.path.insert(
     0, os.path.abspath("../..")
@@ -145,6 +144,53 @@ def test_completion_missing_role(openai_api_response):
 async def test_url_with_format_param(model, sync_mode, monkeypatch):
     from litellm import acompletion, completion
     from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
+    from litellm.litellm_core_utils.prompt_templates.factory import (
+        BedrockImageProcessor,
+    )
+
+    def mock_convert_to_anthropic_image_obj(openai_image_url, format=None):
+        if format is not None:
+            assert format == "image/png"
+        return {
+            "type": "base64",
+            "media_type": format or "image/png",
+            "data": "AAAA",
+        }
+
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.factory.convert_url_to_base64",
+        lambda url: "data:image/jpeg;base64,AAAA",
+    )
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.image_handling.convert_url_to_base64",
+        lambda url: "data:image/jpeg;base64,AAAA",
+    )
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.factory.convert_to_anthropic_image_obj",
+        mock_convert_to_anthropic_image_obj,
+    )
+    monkeypatch.setattr(
+        "litellm.llms.gemini.chat.transformation.convert_to_anthropic_image_obj",
+        mock_convert_to_anthropic_image_obj,
+    )
+    monkeypatch.setattr(
+        "litellm.llms.vertex_ai.gemini.transformation.convert_to_anthropic_image_obj",
+        mock_convert_to_anthropic_image_obj,
+    )
+    monkeypatch.setattr(
+        BedrockImageProcessor,
+        "get_image_details",
+        staticmethod(lambda image_url: ("AAAA", "image/jpeg")),
+    )
+
+    async def mock_get_image_details_async(image_url):
+        return "AAAA", "image/jpeg"
+
+    monkeypatch.setattr(
+        BedrockImageProcessor,
+        "get_image_details_async",
+        staticmethod(mock_get_image_details_async),
+    )
 
     if sync_mode:
         client = HTTPHandler()
