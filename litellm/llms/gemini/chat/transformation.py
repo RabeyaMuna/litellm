@@ -116,12 +116,17 @@ class GoogleAIStudioGeminiConfig(VertexGeminiConfig):
                         else:
                             _image_url = img_element.get("image_url")  # type: ignore
                         if _image_url and "https://" in _image_url:
-                            image_obj = convert_to_anthropic_image_obj(
-                                _image_url, format=format
-                            )
-                            img_element["image_url"] = (  # type: ignore
-                                convert_generic_image_chunk_to_openai_image_obj(
-                                    image_obj
+                            try:
+                                image_obj = convert_to_anthropic_image_obj(
+                                    _image_url, format=format
                                 )
-                            )
+                                img_element["image_url"] = (  # type: ignore
+                                    convert_generic_image_chunk_to_openai_image_obj(
+                                        image_obj
+                                    )
+                                )
+                            except Exception:
+                                # If fetching the image fails, keep the original image_url
+                                # This allows the downstream code to handle the error appropriately
+                                pass
         return _gemini_convert_messages_with_history(messages=messages)
