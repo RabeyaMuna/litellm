@@ -36,7 +36,7 @@ from litellm.types.llms.vertex_ai import PartType as VertexPartType
 from litellm.types.utils import GenericImageParsingChunk
 
 from .common_utils import convert_content_list_to_str, is_non_content_values_set
-from .image_handling import convert_url_to_base64
+from .image_handling import IMAGE_FETCH_HEADERS, convert_url_to_base64
 
 
 def default_pt(messages):
@@ -737,7 +737,13 @@ def convert_to_anthropic_image_obj(
     """
     try:
         if openai_image_url.startswith("http"):
-            openai_image_url = convert_url_to_base64(url=openai_image_url)
+            try:
+                openai_image_url = convert_url_to_base64(url=openai_image_url)
+            except Exception:
+                if format:
+                    openai_image_url = f"data:{format};base64,"
+                else:
+                    raise
         # Extract the media type and base64 data
         media_type, base64_data = openai_image_url.split("data:")[1].split(";base64,")
 
@@ -757,6 +763,16 @@ def convert_to_anthropic_image_obj(
         raise Exception(
             """Image url not in expected format. Example Expected input - "image_url": "data:image/jpeg;base64,{base64_image}". Supported formats - ['image/jpeg', 'image/png', 'image/gif', 'image/webp']."""
         )
+
+
+def convert_to_anthropic_image_url_obj(
+    openai_image_url: str, format: Optional[str]
+) -> AnthropicMessagesImageParam:
+    source = AnthropicContentParamSourceUrl(type="url", url=openai_image_url)
+    if format is not None:
+        source["media_type"] = format
+
+    return AnthropicMessagesImageParam(type="image", source=source)
 
 
 # The following XML functions will be deprecated once JSON schema support is available on Bedrock and Vertex
@@ -862,14 +878,23 @@ def anthropic_messages_pt_xml(messages: list):
                 for m in messages[msg_i]["content"]:
                     if m.get("type", "") == "image_url":
                         format = m["image_url"].get("format")
-                        user_content.append(
-                            {
-                                "type": "image",
-                                "source": convert_to_anthropic_image_obj(
-                                    m["image_url"]["url"], format=format
-                                ),
-                            }
-                        )
+                        image_url = m["image_url"]["url"]
+                        if format is not None and image_url.startswith("http"):
+                            user_content.append(
+                                convert_to_anthropic_image_url_obj(
+                                    openai_image_url=image_url,
+                                    format=format,
+                                )
+                            )
+                        else:
+                            user_content.append(
+                                {
+                                    "type": "image",
+                                    "source": convert_to_anthropic_image_obj(
+                                        image_url, format=format
+                                    ),
+                                }
+                            )
                     elif m.get("type", "") == "text":
                         user_content.append({"type": "text", "text": m["text"]})
             else:
@@ -1569,16 +1594,27 @@ def anthropic_messages_pt(  # noqa: PLR0915
                                 image_chunk = convert_to_anthropic_image_obj(
                                     openai_image_url=m["image_url"], format=None
                                 )
+                                _anthropic_content_element = (
+                                    _anthropic_content_element_factory(image_chunk)
+                                )
                             else:
                                 format = m["image_url"].get("format")
-                                image_chunk = convert_to_anthropic_image_obj(
-                                    openai_image_url=m["image_url"]["url"],
-                                    format=format,
-                                )
-
-                            _anthropic_content_element = (
-                                _anthropic_content_element_factory(image_chunk)
-                            )
+                                image_url = m["image_url"]["url"]
+                                if format is not None and image_url.startswith("http"):
+                                    _anthropic_content_element = (
+                                        convert_to_anthropic_image_url_obj(
+                                            openai_image_url=image_url,
+                                            format=format,
+                                        )
+                                    )
+                                else:
+                                    image_chunk = convert_to_anthropic_image_obj(
+                                        openai_image_url=image_url,
+                                        format=format,
+                                    )
+                                    _anthropic_content_element = (
+                                        _anthropic_content_element_factory(image_chunk)
+                                    )
                             _content_element = add_cache_control_to_content(
                                 anthropic_content_element=_anthropic_content_element,
                                 orignal_content_element=dict(m),
@@ -2417,7 +2453,9 @@ class BedrockImageProcessor:
                 params={"concurrent_limit": 1},
             )
             # Send a GET request to the image URL
-            response = await client.get(image_url, follow_redirects=True)
+            response = await client.get(
+                image_url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             return BedrockImageProcessor._post_call_image_processing(response)
@@ -2430,7 +2468,9 @@ class BedrockImageProcessor:
         try:
             client = HTTPHandler(concurrent_limit=1)
             # Send a GET request to the image URL
-            response = client.get(image_url, follow_redirects=True)
+            response = client.get(
+                image_url, follow_redirects=True, headers=IMAGE_FETCH_HEADERS
+            )
             response.raise_for_status()  # Raise an exception for HTTP errors
 
             return BedrockImageProcessor._post_call_image_processing(response)
@@ -2546,7 +2586,15 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = BedrockImageProcessor.get_image_details(image_url)
+            try:
+                img_bytes, mime_type = BedrockImageProcessor.get_image_details(
+                    image_url
+                )
+            except Exception:
+                if format:
+                    img_bytes, mime_type = "", format
+                else:
+                    raise
             image_format = mime_type.split("/")[1]
         else:
             raise ValueError(
@@ -2569,9 +2617,16 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = await BedrockImageProcessor.get_image_details_async(
-                image_url
-            )
+            try:
+                (
+                    img_bytes,
+                    mime_type,
+                ) = await BedrockImageProcessor.get_image_details_async(image_url)
+            except Exception:
+                if format:
+                    img_bytes, mime_type = "", format
+                else:
+                    raise
             image_format = mime_type.split("/")[1]
         else:
             raise ValueError(

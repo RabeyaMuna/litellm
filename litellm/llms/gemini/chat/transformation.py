@@ -1,11 +1,7 @@
 from typing import List, Optional
 
-from litellm.litellm_core_utils.prompt_templates.factory import (
-    convert_generic_image_chunk_to_openai_image_obj,
-    convert_to_anthropic_image_obj,
-)
 from litellm.types.llms.openai import AllMessageValues
-from litellm.types.llms.vertex_ai import ContentType, PartType
+from litellm.types.llms.vertex_ai import ContentType
 from litellm.utils import supports_reasoning
 
 from ...vertex_ai.gemini.transformation import _gemini_convert_messages_with_history
@@ -99,29 +95,6 @@ class GoogleAIStudioGeminiConfig(VertexGeminiConfig):
         self, messages: List[AllMessageValues]
     ) -> List[ContentType]:
         """
-        Google AI Studio Gemini does not support image urls in messages.
+        Convert OpenAI-format messages to Gemini contents.
         """
-        for message in messages:
-            _message_content = message.get("content")
-            if _message_content is not None and isinstance(_message_content, list):
-                _parts: List[PartType] = []
-                for element in _message_content:
-                    if element.get("type") == "image_url":
-                        img_element = element
-                        _image_url: Optional[str] = None
-                        format: Optional[str] = None
-                        if isinstance(img_element.get("image_url"), dict):
-                            _image_url = img_element["image_url"].get("url")  # type: ignore
-                            format = img_element["image_url"].get("format")  # type: ignore
-                        else:
-                            _image_url = img_element.get("image_url")  # type: ignore
-                        if _image_url and "https://" in _image_url:
-                            image_obj = convert_to_anthropic_image_obj(
-                                _image_url, format=format
-                            )
-                            img_element["image_url"] = (  # type: ignore
-                                convert_generic_image_chunk_to_openai_image_obj(
-                                    image_obj
-                                )
-                            )
         return _gemini_convert_messages_with_history(messages=messages)
