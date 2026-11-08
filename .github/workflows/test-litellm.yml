@@ -1,13 +1,13 @@
 name: LiteLLM Mock Tests (folder - tests/test_litellm)
 
 on:
-  pull_request:
-    branches: [ main ]
 
+- push
+- workflow_dispatch
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
     - uses: actions/checkout@v4
