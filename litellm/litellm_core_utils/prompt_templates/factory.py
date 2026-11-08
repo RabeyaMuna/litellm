@@ -2546,8 +2546,16 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = BedrockImageProcessor.get_image_details(image_url)
-            image_format = mime_type.split("/")[1]
+            if format:
+                converted_image_url = convert_url_to_base64(url=image_url)
+                img_bytes, _, _ = cls._parse_base64_image(converted_image_url)
+                mime_type = format
+                image_format = mime_type.split("/")[1]
+            else:
+                img_bytes, mime_type = BedrockImageProcessor.get_image_details(
+                    image_url
+                )
+                image_format = mime_type.split("/")[1]
         else:
             raise ValueError(
                 "Unsupported image type. Expected either image url or base64 encoded string"
@@ -2569,10 +2577,16 @@ class BedrockImageProcessor:
         if "base64" in image_url:
             img_bytes, mime_type, image_format = cls._parse_base64_image(image_url)
         elif "http://" in image_url or "https://" in image_url:
-            img_bytes, mime_type = await BedrockImageProcessor.get_image_details_async(
-                image_url
-            )
-            image_format = mime_type.split("/")[1]
+            if format:
+                converted_image_url = convert_url_to_base64(url=image_url)
+                img_bytes, _, _ = cls._parse_base64_image(converted_image_url)
+                mime_type = format
+                image_format = mime_type.split("/")[1]
+            else:
+                img_bytes, mime_type = (
+                    await BedrockImageProcessor.get_image_details_async(image_url)
+                )
+                image_format = mime_type.split("/")[1]
         else:
             raise ValueError(
                 "Unsupported image type. Expected either image url or base64 encoded string"

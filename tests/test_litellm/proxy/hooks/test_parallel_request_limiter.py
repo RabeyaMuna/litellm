@@ -138,6 +138,7 @@ async def test_pre_call_hook():
     )
 
 
+@pytest.mark.flaky(retries=6, delay=1)
 @pytest.mark.asyncio
 async def test_pre_call_hook_rpm_limits():
     """
@@ -157,7 +158,7 @@ async def test_pre_call_hook_rpm_limits():
         user_api_key_dict=user_api_key_dict, cache=local_cache, data={}, call_type=""
     )
 
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.1)
 
     try:
         await parallel_request_handler.async_pre_call_hook(

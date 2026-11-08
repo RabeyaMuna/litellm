@@ -144,7 +144,14 @@ def test_completion_missing_role(openai_api_response):
 @pytest.mark.asyncio
 async def test_url_with_format_param(model, sync_mode, monkeypatch):
     from litellm import acompletion, completion
+    from litellm.litellm_core_utils.prompt_templates import factory
     from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
+
+    monkeypatch.setattr(
+        factory,
+        "convert_url_to_base64",
+        lambda url: "data:image/png;base64,aW1hZ2U=",
+    )
 
     if sync_mode:
         client = HTTPHandler()
