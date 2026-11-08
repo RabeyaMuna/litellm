@@ -109,6 +109,17 @@ def test_completion_pydantic_obj_2():
         assert mock_post.call_args.kwargs["json"] == expected_request_body
 
 
+def test_gemini_provider_supports_response_schema():
+    from litellm.llms.vertex_ai.common_utils import get_supports_response_schema
+
+    assert (
+        get_supports_response_schema(
+            model="gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
 def test_build_vertex_schema():
     import json
 

@@ -1822,6 +1822,11 @@ def supports_response_schema(
             f"Model not found or error in checking response schema support. You passed model={model}, custom_llm_provider={custom_llm_provider}. Error: {str(e)}"
         )
         return False
+    if custom_llm_provider in (
+        litellm.LlmProviders.VERTEX_AI,
+        "vertex_ai",
+    ) and model.startswith("gemini/"):
+        model = model.split("/", 1)[1]
 
     # providers that globally support response schema
     PROVIDERS_GLOBALLY_SUPPORT_RESPONSE_SCHEMA = [

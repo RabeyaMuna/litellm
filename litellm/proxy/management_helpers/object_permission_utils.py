@@ -48,15 +48,15 @@ async def handle_update_object_permission_common(
     if new_object_permission is None:
         return None
 
-    # Lookup existing object permission ID and update that entry
-    object_permission_id_to_use: str = existing_object_permission_id or str(
-        uuid.uuid4()
-    )
+    # Lookup the current permission row first. If the entity has no
+    # object_permission_id yet, the lookup intentionally uses None and a new id
+    # is generated only for the upsert create path below.
+    object_permission_id_to_lookup = existing_object_permission_id
     existing_object_permissions_dict: Dict = {}
 
     existing_object_permission = (
         await prisma_client.db.litellm_objectpermissiontable.find_unique(
-            where={"object_permission_id": object_permission_id_to_use},
+            where={"object_permission_id": object_permission_id_to_lookup},
         )
     )
 
@@ -65,6 +65,12 @@ async def handle_update_object_permission_common(
         existing_object_permissions_dict = existing_object_permission.model_dump(
             exclude_unset=True, exclude_none=True
         )
+
+    object_permission_id_to_use = (
+        existing_object_permission.object_permission_id
+        if existing_object_permission is not None
+        else existing_object_permission_id or str(uuid.uuid4())
+    )
 
     # Handle string JSON object permission
     if isinstance(new_object_permission, str):
