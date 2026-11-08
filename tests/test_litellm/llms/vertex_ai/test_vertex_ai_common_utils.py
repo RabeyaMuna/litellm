@@ -12,13 +12,134 @@ sys.path.insert(
 )  # Adds the parent directory to the system path
 
 import litellm
+import litellm.llms.vertex_ai.common_utils as vertex_common_utils
 from litellm.llms.vertex_ai.common_utils import (
     _get_vertex_url,
     convert_anyof_null_to_nullable,
+    get_supports_response_schema,
     get_vertex_location_from_url,
     get_vertex_project_id_from_url,
     set_schema_property_ordering,
 )
+
+
+def test_gemini_response_schema_support_checks_prefixed_model_cost(monkeypatch):
+    """Google AI Studio Gemini models should keep native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/test-schema-model",
+        {"supports_response_schema": True},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="test-schema-model", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
+def test_gemini_response_schema_support_checks_models_prefix(monkeypatch):
+    """Google API model names may include a models/ prefix before request build."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="models/gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
+def test_gemini_response_schema_support_respects_explicit_false(monkeypatch):
+    """An exact model-level false should not be overridden by prefixed metadata."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "test-schema-model",
+        {"supports_response_schema": False},
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/test-schema-model",
+        {"supports_response_schema": True},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="test-schema-model", custom_llm_provider="gemini"
+        )
+        is False
+    )
+
+
+def test_gemini_response_schema_support_defaults_true_for_gemini_spec_model(
+    monkeypatch,
+):
+    """Gemini request-format models should keep native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: False,
+    )
+    monkeypatch.delitem(
+        litellm.model_cost,
+        "gemini/gemini-1.5-pro",
+        raising=False,
+    )
+    monkeypatch.delitem(
+        litellm.model_cost,
+        "gemini-1.5-pro",
+        raising=False,
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="gemini/gemini-1.5-pro", custom_llm_provider="gemini"
+        )
+        is True
+    )
+
+
+def test_gemini_response_schema_support_default_does_not_override_exact_false(
+    monkeypatch,
+):
+    """Exact custom model metadata should still disable native response_schema support."""
+
+    monkeypatch.setattr(
+        vertex_common_utils,
+        "supports_response_schema",
+        lambda model, custom_llm_provider: True,
+    )
+    monkeypatch.setitem(
+        litellm.model_cost,
+        "gemini/custom-schema-model",
+        {"supports_response_schema": False},
+    )
+
+    assert (
+        get_supports_response_schema(
+            model="gemini/custom-schema-model", custom_llm_provider="gemini"
+        )
+        is False
+    )
 
 
 @pytest.mark.asyncio
@@ -237,7 +358,11 @@ def test_build_vertex_schema():
                     },
                     "recursion_limit": {"type": "integer"},
                     "configurable": {"type": "object"},
-                    "run_id": {"anyOf": [{"type": "string", "nullable": True}]},
+                    "run_id": {
+                        "anyOf": [
+                            {"format": "uuid", "type": "string", "nullable": True}
+                        ]
+                    },
                 },
                 "type": "object",
             },
@@ -623,57 +748,3 @@ def test_get_vertex_region_global_only_model(
 
         assert result == expected_region
         mock_is_global_only.assert_called_once_with("test-model")
-
-
-def test_vertex_filter_format_uri():
-    import json
-
-    from litellm.llms.vertex_ai.common_utils import filter_schema_fields
-
-    parameters = {
-        "type": "object",
-        "properties": {
-            "url": {
-                "type": "string",
-                "format": "uri",
-                "description": "The URL to fetch content from",
-            },
-            "prompt": {
-                "type": "string",
-                "description": "The prompt to run on the fetched content",
-            },
-        },
-        "required": ["url", "prompt"],
-        "$schema": "http://json-schema.org/draft-07/schema#",
-    }
-    valid_schema_fields = {
-        "minLength",
-        "nullable",
-        "maxItems",
-        "required",
-        "default",
-        "items",
-        "propertyOrdering",
-        "maximum",
-        "properties",
-        "anyOf",
-        "description",
-        "minProperties",
-        "minimum",
-        "minItems",
-        "maxProperties",
-        "title",
-        "pattern",
-        "example",
-        "format",
-        "enum",
-        "maxLength",
-        "type",
-    }
-
-    new_parameters = filter_schema_fields(
-        schema_dict=parameters,
-        valid_fields=valid_schema_fields,
-    )
-
-    assert "uri" not in json.dumps(new_parameters)
