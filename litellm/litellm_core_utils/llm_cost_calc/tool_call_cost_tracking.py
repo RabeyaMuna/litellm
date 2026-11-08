@@ -28,6 +28,8 @@ class StandardBuiltInToolCostTracking:
     Example: Web Search
     """
 
+    DEFAULT_ANTHROPIC_WEB_SEARCH_COST_PER_REQUEST = 0.01
+
     @staticmethod
     def get_cost_for_anthropic_web_search(
         model_info: Optional[ModelInfo] = None,
@@ -36,16 +38,19 @@ class StandardBuiltInToolCostTracking:
         """
         Get the cost of using a web search tool for Anthropic.
         """
-        ## Check if web search requests are in the usage object
-        if model_info is None:
-            return 0.0
-
         if (
             usage is None
             or usage.server_tool_use is None
             or usage.server_tool_use.web_search_requests is None
         ):
             return 0.0
+
+        ## Check if web search requests are in the usage object
+        if model_info is None:
+            return (
+                StandardBuiltInToolCostTracking.DEFAULT_ANTHROPIC_WEB_SEARCH_COST_PER_REQUEST
+                * usage.server_tool_use.web_search_requests
+            )
 
         ## Get the cost per web search request
         search_context_pricing: SearchContextCostPerQuery = (
@@ -55,7 +60,9 @@ class StandardBuiltInToolCostTracking:
             "search_context_size_medium", 0.0
         )
         if cost_per_web_search_request is None or cost_per_web_search_request == 0.0:
-            return 0.0
+            cost_per_web_search_request = (
+                StandardBuiltInToolCostTracking.DEFAULT_ANTHROPIC_WEB_SEARCH_COST_PER_REQUEST
+            )
 
         ## Calculate the total cost
         total_cost = (
@@ -89,7 +96,9 @@ class StandardBuiltInToolCostTracking:
             model_info = StandardBuiltInToolCostTracking._safe_get_model_info(
                 model=model, custom_llm_provider=custom_llm_provider
             )
-            if custom_llm_provider == "anthropic":
+            if StandardBuiltInToolCostTracking._usage_includes_web_search_requests(
+                usage=usage
+            ):
                 return (
                     StandardBuiltInToolCostTracking.get_cost_for_anthropic_web_search(
                         model_info=model_info,
@@ -117,6 +126,15 @@ class StandardBuiltInToolCostTracking:
         return 0.0
 
     @staticmethod
+    def _usage_includes_web_search_requests(usage: Optional[Usage] = None) -> bool:
+        return (
+            usage is not None
+            and hasattr(usage, "server_tool_use")
+            and usage.server_tool_use is not None
+            and usage.server_tool_use.web_search_requests is not None
+        )
+
+    @staticmethod
     def response_object_includes_web_search_call(
         response_object: Any, usage: Optional[Usage] = None
     ) -> bool:
@@ -137,11 +155,8 @@ class StandardBuiltInToolCostTracking:
             return StandardBuiltInToolCostTracking.response_includes_output_type(
                 response_object=response_object, output_type="web_search_call"
             )
-        elif (
-            usage is not None
-            and hasattr(usage, "server_tool_use")
-            and usage.server_tool_use is not None
-            and usage.server_tool_use.web_search_requests is not None
+        elif StandardBuiltInToolCostTracking._usage_includes_web_search_requests(
+            usage=usage
         ):
             return True
         return False
