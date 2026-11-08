@@ -10,13 +10,43 @@ sys.path.insert(
     0, os.path.abspath("../../../..")
 )  # Adds the parent directory to the system path
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import litellm
 from litellm.proxy.proxy_server import app
 from litellm.types.tag_management import TagDeleteRequest, TagInfoRequest, TagNewRequest
 
 client = TestClient(app)
+
+
+def _get_route_endpoint(path: str):
+    for route in app.routes:
+        if getattr(route, "path", None) == path:
+            return route.endpoint
+    raise AssertionError(f"Route {path} not found")
+
+
+@pytest.fixture(autouse=True)
+def isolate_proxy_auth_state(monkeypatch):
+    """
+    These endpoint tests authenticate with the default test master key.
+    Other proxy tests mutate auth globals in the shared app, so pin the
+    auth state here to keep this module order-independent under xdist.
+    """
+    from litellm.caching import DualCache
+    import litellm.proxy.auth.user_api_key_auth as user_api_key_auth
+    import litellm.proxy.proxy_server as proxy_server
+
+    monkeypatch.setattr(proxy_server, "master_key", "sk-1234")
+    monkeypatch.setattr(proxy_server, "user_custom_auth", None)
+    monkeypatch.setattr(user_api_key_auth, "enterprise_custom_auth", None)
+    monkeypatch.setattr(proxy_server, "user_api_key_cache", DualCache())
+    monkeypatch.setitem(proxy_server.general_settings, "enable_jwt_auth", False)
+    monkeypatch.setitem(proxy_server.general_settings, "enable_oauth2_auth", False)
+    monkeypatch.setitem(
+        proxy_server.general_settings, "enable_oauth2_proxy_auth", False
+    )
+    monkeypatch.setitem(proxy_server.general_settings, "litellm_key_header_name", None)
 
 
 @pytest.mark.asyncio
@@ -83,14 +113,22 @@ async def test_update_tag():
     """
     Test updating an existing tag
     """
-    # Mock the prisma client and _get_tags_config and _save_tags_config
-    with patch("litellm.proxy.proxy_server.prisma_client") as mock_prisma, patch(
-        "litellm.proxy.management_endpoints.tag_management_endpoints._get_tags_config"
-    ) as mock_get_tags, patch(
-        "litellm.proxy.management_endpoints.tag_management_endpoints._save_tags_config"
-    ) as mock_save_tags, patch(
-        "litellm.proxy.management_endpoints.tag_management_endpoints._get_model_names"
-    ) as mock_get_models:
+    update_tag_endpoint = _get_route_endpoint("/tag/update")
+    mock_get_tags = AsyncMock()
+    mock_save_tags = AsyncMock()
+    mock_get_models = AsyncMock()
+
+    # Mock the prisma client and endpoint helpers. Patch the route endpoint's
+    # globals directly because proxy reloads can leave the app with older
+    # function objects than the importable module name.
+    with patch("litellm.proxy.proxy_server.prisma_client") as mock_prisma, patch.dict(
+        update_tag_endpoint.__globals__,
+        {
+            "_get_tags_config": mock_get_tags,
+            "_save_tags_config": mock_save_tags,
+            "_get_model_names": mock_get_models,
+        },
+    ):
         # Setup mocks for existing tag
         mock_get_tags.return_value = {
             "test-tag": {

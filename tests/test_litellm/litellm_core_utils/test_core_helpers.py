@@ -35,3 +35,19 @@ def test_add_missing_spend_metadata_to_litellm_metadata():
         "test_key": "test_value",
         "user_api_key_hash_value": "1234567890",
     }
+
+
+def test_get_litellm_metadata_from_kwargs_with_nested_litellm_params_metadata():
+    kwargs = {
+        "litellm_params": {
+            "metadata": {
+                "user_api_key": "router-key",
+                "user_api_key_user_id": "router-user",
+            }
+        }
+    }
+
+    assert get_litellm_metadata_from_kwargs(kwargs) == {
+        "user_api_key": "router-key",
+        "user_api_key_user_id": "router-user",
+    }

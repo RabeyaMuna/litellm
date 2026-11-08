@@ -62,8 +62,11 @@ async def test_patch_user_updates_fields():
     )
 
     with patch("litellm.proxy.proxy_server.prisma_client", mock_client), \
-         patch("litellm.proxy.management_endpoints.scim.scim_v2.ScimTransformations.transform_litellm_user_to_scim_user", 
-               AsyncMock(return_value=mock_scim_user)):
+         patch.object(
+             patch_user.__globals__["ScimTransformations"],
+             "transform_litellm_user_to_scim_user",
+             AsyncMock(return_value=mock_scim_user),
+         ):
         result = await patch_user(user_id="user-1", patch_ops=patch_ops)
 
     mock_db.litellm_usertable.update.assert_called_once()
@@ -127,17 +130,21 @@ async def test_patch_user_manages_group_memberships():
         ]
     )
 
+    mock_patch_team_membership = AsyncMock(return_value=True)
+
     with patch("litellm.proxy.proxy_server.prisma_client", mock_client), \
-         patch("litellm.proxy.management_endpoints.scim.scim_v2.team_member_add",
-               AsyncMock(side_effect=mock_add)) as mock_add_fn, \
-         patch("litellm.proxy.management_endpoints.scim.scim_v2.team_member_delete",
-               AsyncMock(side_effect=mock_delete)) as mock_del_fn, \
-         patch("litellm.proxy.management_endpoints.scim.scim_v2.ScimTransformations.transform_litellm_user_to_scim_user",
-               AsyncMock(return_value=mock_scim_user)):
+         patch.dict(
+             patch_user.__globals__,
+             {"patch_team_membership": mock_patch_team_membership},
+         ), \
+         patch.object(
+             patch_user.__globals__["ScimTransformations"],
+             "transform_litellm_user_to_scim_user",
+             AsyncMock(return_value=mock_scim_user),
+         ):
         result = await patch_user(user_id="user-2", patch_ops=patch_ops)
 
-    assert mock_add_fn.called
-    assert mock_del_fn.called
+    assert mock_patch_team_membership.called
     # Check that the database update was called with the correct teams
     call_args = mock_db.litellm_usertable.update.call_args
     assert "new-team" in call_args[1]["data"]["teams"]

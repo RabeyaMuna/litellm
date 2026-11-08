@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -408,29 +408,27 @@ async def test_update_user_success(mocker):
     mock_prisma_client.db.litellm_usertable = mocker.MagicMock()
     mock_prisma_client.db.litellm_usertable.update = AsyncMock(return_value=updated_user)
     
-    # Mock dependencies
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._get_prisma_client_or_raise_exception",
-        AsyncMock(return_value=mock_prisma_client)
-    )
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._check_user_exists",
-        AsyncMock(return_value=existing_user)
-    )
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._handle_team_membership_changes",
-        AsyncMock()
-    )
-    mock_transform = mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2.ScimTransformations.transform_litellm_user_to_scim_user",
-        AsyncMock(return_value=response_scim_user)
-    )
-    
-    # Call update_user
-    result = await update_user(user_id="test-user", user=scim_user)
+    # Patch the function's live globals because other tests reload scim_v2.
+    with patch.dict(
+        update_user.__globals__,
+        {
+            "_get_prisma_client_or_raise_exception": AsyncMock(return_value=mock_prisma_client),
+            "_check_user_exists": AsyncMock(return_value=existing_user),
+            "_handle_team_membership_changes": AsyncMock(),
+        },
+    ):
+        mock_transform = mocker.patch.object(
+            update_user.__globals__["ScimTransformations"],
+            "transform_litellm_user_to_scim_user",
+            AsyncMock(return_value=response_scim_user),
+        )
+
+        # Call update_user
+        result = await update_user(user_id="test-user", user=scim_user)
     
     # Verify result
     assert result == response_scim_user
+    mock_transform.assert_called_once_with(updated_user)
     
     # Verify database update was called with correct data
     mock_prisma_client.db.litellm_usertable.update.assert_called_once()
@@ -504,26 +502,27 @@ async def test_patch_user_success(mocker):
     mock_prisma_client.db.litellm_usertable = mocker.MagicMock()
     mock_prisma_client.db.litellm_usertable.update = AsyncMock(return_value=updated_user)
     
-    # Mock dependencies
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._get_prisma_client_or_raise_exception",
-        AsyncMock(return_value=mock_prisma_client)
-    )
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._check_user_exists",
-        AsyncMock(return_value=existing_user)
-    )
-    mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2._handle_team_membership_changes",
-        AsyncMock()
-    )
-    mock_transform = mocker.patch(
-        "litellm.proxy.management_endpoints.scim.scim_v2.ScimTransformations.transform_litellm_user_to_scim_user",
-        AsyncMock(return_value=response_scim_user)
+    mock_get_prisma_client = AsyncMock(return_value=mock_prisma_client)
+    mock_check_user_exists = AsyncMock(return_value=existing_user)
+    mock_handle_team_membership_changes = AsyncMock()
+    mock_transform = mocker.patch.object(
+        patch_user.__globals__["ScimTransformations"],
+        "transform_litellm_user_to_scim_user",
+        AsyncMock(return_value=response_scim_user),
     )
     
-    # Call patch_user
-    result = await patch_user(user_id="test-user", patch_ops=patch_ops)
+    # Patch the globals used by the imported patch_user function. Some tests
+    # reload litellm modules, so string patch targets can point at a newer
+    # module object than patch_user.__globals__ in the full xdist suite.
+    with patch.dict(
+        patch_user.__globals__,
+        {
+            "_get_prisma_client_or_raise_exception": mock_get_prisma_client,
+            "_check_user_exists": mock_check_user_exists,
+            "_handle_team_membership_changes": mock_handle_team_membership_changes,
+        },
+    ):
+        result = await patch_user(user_id="test-user", patch_ops=patch_ops)
     
     # Verify result
     assert result == response_scim_user

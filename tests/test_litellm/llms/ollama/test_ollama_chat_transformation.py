@@ -73,10 +73,8 @@ class TestOllamaChatConfigResponseFormat:
 
     def test_transform_request_loads_config_parameters(self):
         """Test that transform_request loads config parameters without overriding existing optional_params"""
-        # Set config parameters on the class
-        import litellm
-
-        litellm.OllamaChatConfig(num_ctx=8000, temperature=0.0)
+        # Set config parameters on the same class object used by this test.
+        OllamaChatConfig(num_ctx=8000, temperature=0.0)
 
         try:
             config = OllamaChatConfig()
@@ -99,5 +97,5 @@ class TestOllamaChatConfigResponseFormat:
 
         finally:
             # Clean up class attributes
-            delattr(litellm.OllamaChatConfig, "num_ctx")
-            delattr(litellm.OllamaChatConfig, "temperature")
+            delattr(OllamaChatConfig, "num_ctx")
+            delattr(OllamaChatConfig, "temperature")

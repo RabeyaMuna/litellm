@@ -725,6 +725,9 @@ OLD_LITELLM_METADATA_FIELD = "metadata"
 MAX_SPENDLOG_ROWS_TO_QUERY = int(
     os.getenv("MAX_SPENDLOG_ROWS_TO_QUERY", 1_000_000)
 )  # if spendLogs has more than 1M rows, do not query the DB
+EMAIL_BUDGET_ALERT_MAX_SPEND_ALERT_PERCENTAGE = float(
+    os.getenv("EMAIL_BUDGET_ALERT_MAX_SPEND_ALERT_PERCENTAGE", 0.8)
+)  # compatibility constant for enterprise email budget alerting
 DEFAULT_SOFT_BUDGET = float(
     os.getenv("DEFAULT_SOFT_BUDGET", 50.0)
 )  # by default all litellm proxy keys have a soft budget of 50.0

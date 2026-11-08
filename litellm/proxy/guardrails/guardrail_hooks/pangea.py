@@ -5,6 +5,7 @@ from typing import Any, Optional, Protocol
 from fastapi import HTTPException
 
 from litellm._logging import verbose_proxy_logger
+import httpx
 from litellm.caching.dual_cache import DualCache
 from litellm.integrations.custom_guardrail import (
     CustomGuardrail,
@@ -266,6 +267,40 @@ class PangeaHandler(CustomGuardrail):
         except HTTPException as e:
             # Re-raise HTTPException if it's the one we raised for blocking
             raise e
+        except httpx.HTTPStatusError as e:
+            # If the remote returned an error status but included a JSON body
+            # that indicates the request was blocked, surface the blocked error
+            resp = getattr(e, "response", None)
+            try:
+                if resp is not None:
+                    result = resp.json()
+                    if result.get("result", {}).get("blocked") is True:
+                        verbose_proxy_logger.warning(
+                            f"Pangea Guardrail ({hook_name}): Request blocked (status error). Response: {result}"
+                        )
+                        raise HTTPException(
+                            status_code=400,
+                            detail={
+                                "error": "Violated Pangea guardrail policy",
+                                "guardrail_name": self.guardrail_name,
+                                "pangea_response": result.get("result"),
+                            },
+                        )
+            except Exception:
+                # fall through to generic error handling below
+                pass
+
+            verbose_proxy_logger.error(
+                f"Pangea Guardrail ({hook_name}): Error calling API: {e}. Response text: {getattr(e, 'response', None) and getattr(e.response, 'text', None)}"  # type: ignore
+            )
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "Error communicating with Pangea Guardrail",
+                    "guardrail_name": self.guardrail_name,
+                    "exception": str(e),
+                },
+            ) from e
         except Exception as e:
             verbose_proxy_logger.error(
                 f"Pangea Guardrail ({hook_name}): Error calling API: {e}. Response text: {getattr(e, 'response', None) and getattr(e.response, 'text', None)}"  # type: ignore

@@ -34,6 +34,34 @@ router = APIRouter()
 GUARDRAIL_REGISTRY = GuardrailRegistry()
 
 
+def _coerce_litellm_params_to_model(
+    litellm_params: Optional[Union[LitellmParams, Dict[str, Any]]],
+) -> Optional[LitellmParams]:
+    """Normalize guardrail params to a LitellmParams instance.
+
+    The guardrail registry and in-memory handler can surface either a
+    Pydantic model or a plain dictionary depending on the source. The
+    endpoint response model expects a full LitellmParams instance.
+    """
+    if litellm_params is None:
+        return None
+
+    if isinstance(litellm_params, LitellmParams):
+        return litellm_params
+
+    if isinstance(litellm_params, dict):
+        try:
+            return LitellmParams(**litellm_params)
+        except Exception:
+            # Fall back to a best-effort dict-based model when the payload is
+            # not fully compatible with the strict guardrail schema.
+            return LitellmParams(
+                **{k: v for k, v in litellm_params.items() if v is not None}
+            )
+
+    return LitellmParams(**dict(litellm_params))
+
+
 def _get_guardrails_list_response(
     guardrails_config: List[Dict],
 ) -> ListGuardrailsResponse:
@@ -45,7 +73,9 @@ def _get_guardrails_list_response(
         guardrail_configs.append(
             GuardrailInfoResponse(
                 guardrail_name=guardrail.get("guardrail_name"),
-                litellm_params=guardrail.get("litellm_params"),
+                litellm_params=_coerce_litellm_params_to_model(
+                    guardrail.get("litellm_params")
+                ),
                 guardrail_info=guardrail.get("guardrail_info"),
             )
         )
@@ -162,7 +192,9 @@ async def list_guardrails_v2():
                 GuardrailInfoResponse(
                     guardrail_id=guardrail.get("guardrail_id"),
                     guardrail_name=guardrail.get("guardrail_name"),
-                    litellm_params=guardrail.get("litellm_params"),
+                    litellm_params=_coerce_litellm_params_to_model(
+                        guardrail.get("litellm_params")
+                    ),
                     guardrail_info=guardrail.get("guardrail_info"),
                     created_at=guardrail.get("created_at"),
                     updated_at=guardrail.get("updated_at"),
@@ -180,7 +212,9 @@ async def list_guardrails_v2():
                     GuardrailInfoResponse(
                         guardrail_id=guardrail.get("guardrail_id"),
                         guardrail_name=guardrail.get("guardrail_name"),
-                        litellm_params=dict(guardrail.get("litellm_params") or {}),
+                        litellm_params=_coerce_litellm_params_to_model(
+                            guardrail.get("litellm_params")
+                        ),
                         guardrail_info=dict(guardrail.get("guardrail_info") or {}),
                         guardrail_definition_location="config",
                     )
@@ -591,7 +625,9 @@ async def get_guardrail_info(guardrail_id: str):
                 status_code=404, detail=f"Guardrail with ID {guardrail_id} not found"
             )
 
-        litellm_params: Optional[LitellmParams] = result.get("litellm_params")
+        litellm_params = _coerce_litellm_params_to_model(
+            result.get("litellm_params")
+        )
         result_litellm_params_dict = (
             litellm_params.model_dump(exclude_none=True) if litellm_params else {}
         )

@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
@@ -76,17 +76,17 @@ async def test_pangea_ai_guard_request_blocked(pangea_guardrail):
         ]
     }
 
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "result": {"blocked": True, "prompt_messages": data["messages"]}
+    }
+
     with pytest.raises(HTTPException, match="Violated Pangea guardrail policy"):
         with patch(
             "litellm.llms.custom_httpx.http_handler.AsyncHTTPHandler.post",
-            return_value=httpx.Response(
-                status_code=200,
-                # Mock only tested part of response
-                json={"result": {"blocked": True, "prompt_messages": data["messages"]}},
-                request=httpx.Request(
-                    method="POST", url=pangea_guardrail.guardrail_endpoint
-                ),
-            ),
+            new_callable=AsyncMock,
+            return_value=mock_response,
         ) as mock_method:
             await pangea_guardrail.async_pre_call_hook(
                 user_api_key_dict=None, cache=None, data=data, call_type="completion"

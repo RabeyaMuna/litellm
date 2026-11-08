@@ -45,23 +45,21 @@ async def test_ssl_security_level(monkeypatch):
     # assert "DEFAULT@SECLEVEL=1" in ssl_context.get_ciphers()
 
 
-@pytest.mark.asyncio
-async def test_force_ipv4_transport():
+def test_force_ipv4_transport(monkeypatch):
     """Test transport creation with force_ipv4 enabled"""
-    litellm.force_ipv4 = True
-    litellm.disable_aiohttp_transport = True
+    monkeypatch.setattr(litellm, "force_ipv4", True)
+    monkeypatch.setattr(litellm, "disable_aiohttp_transport", True)
 
-    transport = AsyncHTTPHandler._create_async_transport()
+    with patch(
+        "litellm.llms.custom_httpx.http_handler.AsyncHTTPTransport"
+    ) as mock_transport_constructor:
+        mock_transport = MagicMock()
+        mock_transport_constructor.return_value = mock_transport
 
-    # Should get an AsyncHTTPTransport
-    assert isinstance(transport, httpx.AsyncHTTPTransport)
-    # Verify IPv4 configuration through a request
-    client = httpx.AsyncClient(transport=transport)
-    try:
-        response = await client.get("http://example.com")
-        assert response.status_code == 200
-    finally:
-        await client.aclose()
+        transport = AsyncHTTPHandler._create_async_transport()
+
+    mock_transport_constructor.assert_called_once_with(local_address="0.0.0.0")
+    assert transport is mock_transport
 
 
 @pytest.mark.asyncio
