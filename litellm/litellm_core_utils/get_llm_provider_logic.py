@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Tuple
 
 import httpx
@@ -83,6 +84,14 @@ def handle_anthropic_text_model_custom_llm_provider(
             return _model, "anthropic_text"
 
     return model, custom_llm_provider
+
+
+def _is_anthropic_claude_3_model(model: str) -> bool:
+    return (
+        re.match(r"^claude-3(?:-\d+)?-(haiku|sonnet|opus)-\d{8}$", model) is not None
+        or re.match(r"^claude-3(?:-\d+)?-(haiku|sonnet|opus)-latest$", model)
+        is not None
+    )
 
 
 def get_llm_provider(  # noqa: PLR0915
@@ -265,6 +274,8 @@ def get_llm_provider(  # noqa: PLR0915
                 custom_llm_provider = "anthropic_text"
             else:
                 custom_llm_provider = "anthropic"
+        elif _is_anthropic_claude_3_model(model):
+            custom_llm_provider = "anthropic"
         ## cohere
         elif model in litellm.cohere_models or model in litellm.cohere_embedding_models:
             custom_llm_provider = "cohere"

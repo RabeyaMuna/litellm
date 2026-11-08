@@ -136,6 +136,28 @@ def test_get_cost_for_anthropic_web_search():
     assert cost > 0.0
 
 
+def test_get_cost_for_anthropic_web_search_when_model_info_missing(monkeypatch):
+    """
+    Anthropic usage includes web_search_requests, so charge the standard request
+    cost even when a model alias is not present in the local model cost map.
+    """
+    from litellm.types.utils import ServerToolUse, Usage
+
+    monkeypatch.setattr(
+        StandardBuiltInToolCostTracking,
+        "_safe_get_model_info",
+        lambda *args, **kwargs: None,
+    )
+    usage = Usage(server_tool_use=ServerToolUse(web_search_requests=1))
+    cost = StandardBuiltInToolCostTracking.get_cost_for_built_in_tools(
+        model="claude-3-7-sonnet-latest",
+        usage=usage,
+        response_object=None,
+        standard_built_in_tools_params=None,
+    )
+    assert cost > 0.0
+
+
 @pytest.mark.parametrize(
     "model", ["gemini/gemini-2.0-flash-001", "gemini-2.0-flash-001"]
 )

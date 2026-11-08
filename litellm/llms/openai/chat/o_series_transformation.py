@@ -11,6 +11,7 @@ Translations handled by LiteLLM:
 - Logprobs => drop param (if user opts in to dropping param) 
 """
 
+import re
 from typing import Any, Coroutine, List, Literal, Optional, Union, cast, overload
 
 import litellm
@@ -131,9 +132,7 @@ class OpenAIOSeriesConfig(OpenAIGPTConfig):
 
     def is_model_o_series_model(self, model: str) -> bool:
         model = model.split("/")[-1]  # could be "openai/o3" or "o3"
-        return model in litellm.open_ai_chat_completion_models and any(
-            model.startswith(pfx) for pfx in ("o1", "o3", "o4")
-        )
+        return re.match(r"^o(1|3|4)(-(mini|preview))?$", model) is not None
 
     @overload
     def _transform_messages(

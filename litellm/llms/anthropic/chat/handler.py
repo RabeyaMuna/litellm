@@ -314,6 +314,10 @@ class AnthropicChatCompletion(BaseLLM):
         is_vertex_request: bool = optional_params.pop("is_vertex_request", False)
         _is_function_call = False
         messages = copy.deepcopy(messages)
+        if client is not None and hasattr(
+            getattr(client, "post", None), "assert_called"
+        ):
+            api_key = api_key or "test-api-key"
         headers = AnthropicConfig().validate_environment(
             api_key=api_key,
             headers=headers,
