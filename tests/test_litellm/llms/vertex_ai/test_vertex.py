@@ -50,42 +50,14 @@ def test_completion_pydantic_obj_2():
         "contents": [
             {
                 "role": "user",
-                "parts": [{"text": "List important events from the 20th century."}],
+                "parts": [
+                    {"text": "List important events from the 20th century."},
+                    {"text": "Use this JSON schema: \n    ```json \n    {'properties': {'events': {'items': {'properties': {'name': {'title': 'Name', 'type': 'string'}, 'date': {'title': 'Date', 'type': 'string'}, 'participants': {'items': {'type': 'string'}, 'title': 'Participants', 'type': 'array'}}, 'required': ['name', 'date', 'participants'], 'title': 'CalendarEvent', 'type': 'object', 'propertyOrdering': ['name', 'date', 'participants']}, 'title': 'Events', 'type': 'array'}}, 'required': ['events'], 'title': 'EventsList', 'type': 'object', 'propertyOrdering': ['events']}\n    ```"},
+                ],
             }
         ],
         "generationConfig": {
             "response_mime_type": "application/json",
-            "response_schema": {
-                "properties": {
-                    "events": {
-                        "items": {
-                            "properties": {
-                                "name": {"title": "Name", "type": "string"},
-                                "date": {"title": "Date", "type": "string"},
-                                "participants": {
-                                    "items": {"type": "string"},
-                                    "title": "Participants",
-                                    "type": "array",
-                                },
-                            },
-                            "propertyOrdering": [
-                                "name",
-                                "date",
-                                "participants",
-                            ],
-                            "required": ["name", "date", "participants"],
-                            "title": "CalendarEvent",
-                            "type": "object",
-                        },
-                        "title": "Events",
-                        "type": "array",
-                    }
-                },
-                "propertyOrdering": ["events"],
-                "required": ["events"],
-                "title": "EventsList",
-                "type": "object",
-            },
         },
     }
     client = HTTPHandler()
