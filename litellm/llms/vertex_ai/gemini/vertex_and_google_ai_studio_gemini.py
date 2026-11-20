@@ -454,6 +454,35 @@ class VertexGeminiConfig(VertexAIBaseConfig, BaseConfig):
                 response_modalities.append("MODALITY_UNSPECIFIED")
         return response_modalities
 
+    def _handle_parallel_tool_calls(
+        self,
+        value: Any,
+        non_default_params: Dict,
+        optional_params: Dict,
+        drop_params: bool,
+    ) -> Dict:
+        if value is False and not (
+            drop_params or litellm.drop_params
+        ):  # if drop params is True, then we should just ignore this
+            tools = non_default_params.get(
+                "tools", non_default_params.get("functions")
+            )
+            num_function_declarations = (
+                len(tools) if isinstance(tools, list) else 0
+            )
+            if num_function_declarations > 1:
+                raise litellm.utils.UnsupportedParamsError(
+                    message=(
+                        "`parallel_tool_calls=False` is not supported when multiple tools are "
+                        "provided for Gemini. Specify a single tool, or set "
+                        "`parallel_tool_calls=True`. If you want to drop this param, set `litellm.drop_params = True` or pass in `(.., drop_params=True)` in the requst - https://docs.litellm.ai/docs/completion/drop_params"
+                    ),
+                    status_code=400,
+                )
+        else:
+            optional_params["parallel_tool_calls"] = value
+        return optional_params
+
     def map_openai_params(
         self,
         non_default_params: Dict,
@@ -508,26 +537,12 @@ class VertexGeminiConfig(VertexAIBaseConfig, BaseConfig):
                 if _tool_choice_value is not None:
                     optional_params["tool_choice"] = _tool_choice_value
             elif param == "parallel_tool_calls":
-                if value is False and not (
-                    drop_params or litellm.drop_params
-                ):  # if drop params is True, then we should just ignore this
-                    tools = non_default_params.get(
-                        "tools", non_default_params.get("functions")
-                    )
-                    num_function_declarations = (
-                        len(tools) if isinstance(tools, list) else 0
-                    )
-                    if num_function_declarations > 1:
-                        raise litellm.utils.UnsupportedParamsError(
-                            message=(
-                                "`parallel_tool_calls=False` is not supported when multiple tools are "
-                                "provided for Gemini. Specify a single tool, or set "
-                                "`parallel_tool_calls=True`. If you want to drop this param, set `litellm.drop_params = True` or pass in `(.., drop_params=True)` in the requst - https://docs.litellm.ai/docs/completion/drop_params"
-                            ),
-                            status_code=400,
-                        )
-                else:
-                    optional_params["parallel_tool_calls"] = value
+                optional_params = self._handle_parallel_tool_calls(
+                    value=value,
+                    non_default_params=non_default_params,
+                    optional_params=optional_params,
+                    drop_params=drop_params,
+                )
             elif param == "seed":
                 optional_params["seed"] = value
             elif param == "reasoning_effort" and isinstance(value, str):
