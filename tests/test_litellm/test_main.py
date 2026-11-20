@@ -143,6 +143,23 @@ def test_completion_missing_role(openai_api_response):
 @pytest.mark.parametrize("sync_mode", [True, False])
 @pytest.mark.asyncio
 async def test_url_with_format_param(model, sync_mode, monkeypatch):
+    # Mock the image fetching to avoid external URL dependency (Wikimedia returns 403)
+    mock_data_url = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwkJCAoMFA0MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAALCAABAAEAAREA/8QAHwAAAQUBAgMEBQYHCAkKC//aAAgBAQAAPwD/2Q=="
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.image_handling.convert_url_to_base64",
+        lambda url: mock_data_url
+    )
+    # Also patch the reference in factory.py since it's already imported
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.factory.convert_url_to_base64",
+        lambda url: mock_data_url
+    )
+    # Mock BedrockImageProcessor.get_image_details for bedrock converse models
+    monkeypatch.setattr(
+        "litellm.litellm_core_utils.prompt_templates.factory.BedrockImageProcessor.get_image_details",
+        lambda image_url: ("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwkJCAoMFA0MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAALCAABAAEAAREA/8QAHwAAAQUBAgMEBQYHCAkKC//aAAgBAQAAPwD/2Q==", "image/jpeg")
+    )
+
     from litellm import acompletion, completion
     from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
 
