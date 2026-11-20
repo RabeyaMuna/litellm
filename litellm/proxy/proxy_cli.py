@@ -847,3 +847,22 @@ def run_server(  # noqa: PLR0915
 
 if __name__ == "__main__":
     run_server()
+
+def run_separate_health_app():
+    """Run the health app separately if SEPARATE_HEALTH_APP env var is set to '1'."""
+    if os.getenv("SEPARATE_HEALTH_APP") != "1":
+        return
+    
+    import threading
+    
+    from litellm.proxy.health_endpoints.health_app_factory import build_health_app
+    
+    print("LiteLLM Health Endpoints: Starting separate health app on port 4001")  # noqa: T201
+    
+    def _start_health_app():
+        import uvicorn
+        health_app = build_health_app()
+        uvicorn.run(health_app, host="0.0.0.0", port=4001)
+    
+    thread = threading.Thread(target=_start_health_app, daemon=True)
+    thread.start()
