@@ -92,4 +92,8 @@ tests/test_custom_dir/*
 test.py
 
 litellm_config.yaml
-.cursor
+.cursor# Shell redirection artifacts
+=[0-9]*
+>[0-9]*
+*.tmp
+*.log
