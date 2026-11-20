@@ -43,7 +43,7 @@ class VertexAIBatchPrediction(VertexLLM):
             custom_llm_provider="vertex_ai",
         )
 
-        default_api_base = self.create_vertex_url(
+        default_api_base = self.create_vertex_batch_url(
             vertex_location=vertex_location or "us-central1",
             vertex_project=vertex_project or project_id,
         )
@@ -117,12 +117,12 @@ class VertexAIBatchPrediction(VertexLLM):
         )
         return vertex_batch_response
 
-    def create_vertex_url(
+    def create_vertex_batch_url(
         self,
         vertex_location: str,
         vertex_project: str,
     ) -> str:
-        """Return the base url for the vertex garden models"""
+        """Return the base url for the vertex batch prediction jobs"""
         #  POST https://LOCATION-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/LOCATION/batchPredictionJobs
         return f"https://{vertex_location}-aiplatform.googleapis.com/v1/projects/{vertex_project}/locations/{vertex_location}/batchPredictionJobs"
 
@@ -145,7 +145,7 @@ class VertexAIBatchPrediction(VertexLLM):
             custom_llm_provider="vertex_ai",
         )
 
-        default_api_base = self.create_vertex_url(
+        default_api_base = self.create_vertex_batch_url(
             vertex_location=vertex_location or "us-central1",
             vertex_project=vertex_project or project_id,
         )
