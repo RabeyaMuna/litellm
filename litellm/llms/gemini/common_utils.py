@@ -8,6 +8,7 @@ import litellm
 from litellm.constants import DEFAULT_MAX_RECURSE_DEPTH
 from litellm.llms.base_llm.base_utils import BaseLLMModelInfo
 from litellm.llms.base_llm.chat.transformation import BaseLLMException
+from litellm.types.utils import ProviderSpecificModelInfo
 from litellm.secret_managers.main import get_secret_str
 from litellm.types.llms.openai import AllMessageValues
 
@@ -17,6 +18,12 @@ class GeminiError(BaseLLMException):
 
 
 class GeminiModelInfo(BaseLLMModelInfo):
+    def get_provider_info(
+        self,
+        model: str,
+    ) -> Optional[ProviderSpecificModelInfo]:
+        return ProviderSpecificModelInfo(supports_response_schema=True)
+
     def validate_environment(
         self,
         headers: dict,
