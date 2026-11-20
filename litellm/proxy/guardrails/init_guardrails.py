@@ -121,7 +121,7 @@ class InitializeGuardrails:
         verbose_proxy_logger.debug("litellm_params= %s", litellm_params_data)
 
         _litellm_params_kwargs = {
-            k: litellm_params_data.get(k) for k in LitellmParams.__annotations__.keys()
+            k: litellm_params_data.get(k) for k in LitellmParams.model_fields.keys()
         }
 
         litellm_params = LitellmParams(**_litellm_params_kwargs)  # type: ignore
