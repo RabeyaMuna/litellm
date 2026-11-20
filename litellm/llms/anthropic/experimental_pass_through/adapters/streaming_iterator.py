@@ -35,6 +35,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
     sent_first_chunk: bool = False
     sent_content_block_start: bool = False
     sent_content_block_finish: bool = False
+    pending_new_content_block: bool = False
     current_content_block_type: Literal["text", "tool_use"] = "text"
     sent_last_message: bool = False
     holding_chunk: Optional[Any] = None
