@@ -310,9 +310,9 @@ if MCP_AVAILABLE:
 
             # Get server-specific auth header if available
             server_auth_header = None
-            if mcp_server_auth_headers and server.alias is not None:
+            if mcp_server_auth_headers and hasattr(server, 'alias') and server.alias is not None:
                 server_auth_header = mcp_server_auth_headers.get(server.alias)
-            elif mcp_server_auth_headers and server.server_name is not None:
+            elif mcp_server_auth_headers and hasattr(server, 'server_name') and server.server_name is not None:
                 server_auth_header = mcp_server_auth_headers.get(server.server_name)
             
             # Fall back to deprecated mcp_auth_header if no server-specific header found
@@ -455,7 +455,7 @@ if MCP_AVAILABLE:
         server_name: Optional[str],
     ) -> StandardLoggingMCPToolCall:
         mcp_server = global_mcp_server_manager._get_mcp_server_from_tool_name(name)
-        if mcp_server:
+        if mcp_server is not None:
             mcp_info = mcp_server.mcp_info or {}
             return StandardLoggingMCPToolCall(
                 name=name,
