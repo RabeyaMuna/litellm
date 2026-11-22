@@ -6844,7 +6844,7 @@ class ProviderConfigManager:
             return litellm.LiteLLMProxyChatConfig()
         elif litellm.LlmProviders.OPENAI == provider:
             return litellm.OpenAIGPTConfig()
-        elif litellm.LlmProviders.DIGITALOCEAN == provider:
+        elif hasattr(litellm.LlmProviders, 'DIGITALOCEAN') and litellm.LlmProviders.DIGITALOCEAN == provider:
             return litellm.DigitalOceanConfig()
         elif litellm.LlmProviders.NSCALE == provider:
             return litellm.NscaleConfig()
