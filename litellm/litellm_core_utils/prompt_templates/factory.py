@@ -4,7 +4,8 @@ import re
 import uuid
 import xml.etree.ElementTree as ET
 from enum import Enum
-from typing import Any, List, Literal, Optional, Tuple, Union, cast, overload
+from typing import Any, List, Optional, Tuple, Union, cast, overload
+from typing_extensions import Literal
 
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
@@ -15,7 +16,7 @@ from litellm import verbose_logger
 from litellm.llms.custom_httpx.http_handler import HTTPHandler, get_async_httpx_client
 from litellm.types.llms.anthropic import *
 from litellm.types.llms.bedrock import MessageBlock as BedrockMessageBlock
-from litellm.types.llms.custom_http import httpxSpecialProvider
+from litellm.types.llms.custom_http import httpxSpecialProvider  # type: ignore
 from litellm.types.llms.ollama import OllamaVisionModelObject
 from litellm.types.llms.openai import (
     AllMessageValues,
