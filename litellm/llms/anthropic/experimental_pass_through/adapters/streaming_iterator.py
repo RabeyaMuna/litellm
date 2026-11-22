@@ -74,7 +74,7 @@ class AnthropicStreamWrapper(AdapterCompletionStreamWrapper):
                 }
 
             # Handle pending new content block start
-            if self.pending_new_content_block:
+            if hasattr(self, 'pending_new_content_block') and self.pending_new_content_block:
                 self.pending_new_content_block = False
                 self.sent_content_block_finish = False  # Reset for new block
                 return {

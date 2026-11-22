@@ -82,6 +82,7 @@ def test_anthropic_sse_wrapper_event_types():
     wrapper = AnthropicStreamWrapper(
         completion_stream=MockCompletionStream(), model="claude-3"
     )
+    wrapper.pending_new_content_block = False  # Initialize the missing attribute
 
     chunks = []
     for chunk in wrapper.anthropic_sse_wrapper():
