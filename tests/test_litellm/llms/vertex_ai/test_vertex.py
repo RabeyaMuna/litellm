@@ -60,30 +60,20 @@ def test_completion_pydantic_obj_2():
                     "events": {
                         "items": {
                             "properties": {
-                                "name": {"title": "Name", "type": "string"},
-                                "date": {"title": "Date", "type": "string"},
+                                "name": {"type": "string"},
+                                "date": {"type": "string"},
                                 "participants": {
                                     "items": {"type": "string"},
-                                    "title": "Participants",
                                     "type": "array",
                                 },
                             },
-                            "propertyOrdering": [
-                                "name",
-                                "date",
-                                "participants",
-                            ],
                             "required": ["name", "date", "participants"],
-                            "title": "CalendarEvent",
                             "type": "object",
                         },
-                        "title": "Events",
                         "type": "array",
                     }
                 },
-                "propertyOrdering": ["events"],
                 "required": ["events"],
-                "title": "EventsList",
                 "type": "object",
             },
         },
