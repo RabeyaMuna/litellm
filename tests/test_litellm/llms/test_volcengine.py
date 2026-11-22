@@ -24,7 +24,7 @@ class TestVolcEngineConfig:
         )
 
         assert mapped_params == {
-            "thinking": {"type": "disabled"},
+            "extra_body": {"thinking": {"type": "disabled"}},
         }
 
         e2e_mapped_params = get_optional_params(
