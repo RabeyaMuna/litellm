@@ -55,38 +55,25 @@ def test_completion_pydantic_obj_2():
         ],
         "generationConfig": {
             "response_mime_type": "application/json",
-            "response_schema": {
+            "responseSchema": {
+                "type": "object",
                 "properties": {
                     "events": {
-                        "items": {
-                            "properties": {
-                                "name": {"title": "Name", "type": "string"},
-                                "date": {"title": "Date", "type": "string"},
-                                "participants": {
-                                    "items": {"type": "string"},
-                                    "title": "Participants",
-                                    "type": "array",
-                                },
-                            },
-                            "propertyOrdering": [
-                                "name",
-                                "date",
-                                "participants",
-                            ],
-                            "required": ["name", "date", "participants"],
-                            "title": "CalendarEvent",
-                            "type": "object",
-                        },
-                        "title": "Events",
                         "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "date": {"type": "string"},
+                                "participants": {"type": "array", "items": {"type": "string"}}
+                            },
+                            "required": ["name", "date", "participants"]
+                        }
                     }
                 },
-                "propertyOrdering": ["events"],
-                "required": ["events"],
-                "title": "EventsList",
-                "type": "object",
-            },
-        },
+                "required": ["events"]
+            }
+        }
     }
     client = HTTPHandler()
     with patch.object(client, "post", new=MagicMock()) as mock_post:
