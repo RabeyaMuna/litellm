@@ -10,6 +10,7 @@ sys.path.insert(
     0, os.path.abspath("../..")
 )  # Adds the parent directory to the system path
 import litellm
+assert importlib.util.find_spec('litellm') is not None, 'litellm module not found'
 
 
 @pytest.fixture(scope="function", autouse=True)
