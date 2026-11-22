@@ -2,6 +2,6 @@ from enum import Enum
 
 
 class AzureCredentialType(str, Enum):
-    ClientSecretCredential = "ClientSecretCredential"
-    ManagedIdentityCredential = "ManagedIdentityCredential"
-    CertificateCredential = "CertificateCredential"
+    ClientSecretCredential: str = "ClientSecretCredential"
+    ManagedIdentityCredential: str = "ManagedIdentityCredential"
+    CertificateCredential: str = "CertificateCredential"
