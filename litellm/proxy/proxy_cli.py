@@ -791,6 +791,19 @@ def run_server(  # noqa: PLR0915
         from litellm.proxy.proxy_server import app  # noqa
         
         # --- SEPARATE HEALTH APP LOGIC ---
+        @staticmethod
+        def run_separate_health_app(host: str, port: int):
+            """Run the health check app on a separate port"""
+            import uvicorn
+            from litellm.proxy.health_app_factory import build_health_app
+            
+            app = build_health_app()
+            uvicorn.run(
+                app,
+                host=host,
+                port=port,
+                factory=True
+            )
         # To run the health app separately, use:
         #   uvicorn litellm.proxy.health_app_factory:build_health_app --factory --host 0.0.0.0 --port=4001
         # This is compatible with the SEPARATE_HEALTH_APP Docker/supervisord pattern.
