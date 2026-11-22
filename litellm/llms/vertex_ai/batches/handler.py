@@ -119,8 +119,8 @@ class VertexAIBatchPrediction(VertexLLM):
 
     def create_vertex_url(
         self,
-        vertex_location: str,
         vertex_project: str,
+        vertex_location: str,
     ) -> str:
         """Return the base url for the vertex garden models"""
         #  POST https://LOCATION-aiplatform.googleapis.com/v1/projects/PROJECT_ID/locations/LOCATION/batchPredictionJobs
