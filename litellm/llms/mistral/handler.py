@@ -41,6 +41,8 @@ def completion(
     api_base, api_key = provider_config._get_openai_compatible_provider_info(
         api_base=api_base, api_key=api_key
     )
+    assert api_base is not None
+    assert api_key is not None
     
     # Use the base handler for the actual HTTP calls
     return base_llm_http_handler.completion(
