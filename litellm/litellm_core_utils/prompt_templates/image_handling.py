@@ -16,7 +16,11 @@ in_memory_cache = InMemoryCache(max_size_in_memory=MAX_IMGS_IN_MEMORY)
 
 
 def _process_image_response(response: Response, url: str) -> str:
-    if response.status_code != 200:
+    if response.status_code == 403:
+        raise Exception(
+            f"Error: Access to the image URL is forbidden. Status code: {response.status_code}, url={url}"
+        )
+    elif response.status_code != 200:
         raise Exception(
             f"Error: Unable to fetch image from URL. Status code: {response.status_code}, url={url}"
         )
