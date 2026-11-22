@@ -60,7 +60,7 @@ class AmazonNovaCanvasConfig:
 
     @classmethod
     def transform_request_body(
-        cls, text: str, optional_params: dict
+        cls, text: str, optional_params: Dict[str, Any]
     ) -> AmazonNovaCanvasRequestBase:
         """
         Transform the request body for Amazon Nova Canvas model
