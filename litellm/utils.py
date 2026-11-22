@@ -351,10 +351,10 @@ def print_verbose(
             verbose_logger.info(print_statement)
         elif log_level == "ERROR":
             verbose_logger.error(print_statement)
-        if litellm.set_verbose is True and logger_only is False:
+        if os.environ.get('LITELLM_LOG', '').upper() == 'DEBUG' and logger_only is False:
             print(print_statement)  # noqa
-    except Exception:
-        pass
+    except Exception as e:
+        verbose_logger.error(f"Error in print_verbose: {str(e)}")
 
 
 ####### CLIENT ###################
@@ -524,10 +524,8 @@ def function_setup(  # noqa: PLR0915
     from litellm import Logging as LiteLLMLogging
     from litellm.litellm_core_utils.litellm_logging import set_callbacks
 
-    if litellm.set_verbose is True:
-        verbose_logger.warning(
-            "`litellm.set_verbose` is deprecated. Please set `os.environ['LITELLM_LOG'] = 'DEBUG'` for debug logs."
-        )
+    if os.environ.get('LITELLM_LOG', '').upper() == 'DEBUG':
+        verbose_logger.debug("Debug logging enabled via LITELLM_LOG environment variable")
     try:
         global callback_list, add_breadcrumb, user_logger_fn, Logging
 
@@ -2121,7 +2119,7 @@ def supports_audio_output(
 ) -> bool:
     """Check if a given model supports audio output in a chat completion call"""
     return _supports_factory(
-        model=model, custom_llm_provider=custom_llm_provider, key="supports_audio_input"
+        model=model, custom_llm_provider=custom_llm_provider, key="supports_audio_output"
     )
 
 
